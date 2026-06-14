@@ -223,7 +223,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   /** 更新助手消息：增量追加文本 */
   const appendDelta = useCallback(
-    (activeId: string, assistantId: string, delta: string, meta?: { mode?: string; confidence?: number }) => {
+    (activeId: string, assistantId: string, delta: string, meta?: { mode?: string; confidence?: number; subgraphVertexCount?: number; subgraphEdgeCount?: number }) => {
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== activeId) return s
@@ -235,6 +235,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               const updated: ChatMessage = { ...m, content: m.content + delta }
               if (meta?.mode) updated.mode = meta.mode
               if (meta?.confidence !== undefined) updated.confidence = meta.confidence
+              if (meta?.subgraphVertexCount !== undefined) updated.subgraphVertexCount = meta.subgraphVertexCount
+              if (meta?.subgraphEdgeCount !== undefined) updated.subgraphEdgeCount = meta.subgraphEdgeCount
               return updated
             })
           }
@@ -340,6 +342,20 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         return false
       }
 
+      // 提取子图统计信息（V/E）
+      const subgraphNeighborIds = new Set<number>()
+      for (const m of matched) subgraphNeighborIds.add(m.vertexId)
+      const graphObj = bc.getGraph()!
+      for (const e of graphObj.edges) {
+        if (subgraphNeighborIds.has(e.src) || subgraphNeighborIds.has(e.dst)) {
+          subgraphNeighborIds.add(e.src)
+          subgraphNeighborIds.add(e.dst)
+        }
+      }
+      const subgraphEdges = graphObj.edges.filter(e => subgraphNeighborIds.has(e.src) && subgraphNeighborIds.has(e.dst))
+      const subgraphVertexCount = subgraphNeighborIds.size
+      const subgraphEdgeCount = subgraphEdges.length
+
       // Step 2: 路由判断 — 置信度 ≥ 0.5 → 翻译官，< 0.5 → 作家
       const isTranslator = confidence >= 0.5
 
@@ -380,7 +396,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
             temperature: 0.3,  // 低温度，保持事实准确
             onDelta: (delta) => {
               appendDelta(activeId, assistantId, delta,
-                firstChunk ? { mode, confidence } : undefined
+                firstChunk ? { mode, confidence, subgraphVertexCount, subgraphEdgeCount } : undefined
               )
               firstChunk = false
             },
@@ -408,7 +424,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               return true
             }
             const chunk = chars.slice(i, i + batchSize).join('')
-            appendDelta(activeId, assistantId, chunk, i === 0 ? { mode, confidence } : undefined)
+            appendDelta(activeId, assistantId, chunk, i === 0 ? { mode, confidence, subgraphVertexCount, subgraphEdgeCount } : undefined)
             await new Promise((r) => setTimeout(r, 8))
           }
           const leanTrace = bc.buildLeanTrace(trimmed, matched, confidence, mode, phi ?? undefined)
@@ -427,7 +443,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         for (let i = 0; i < chars.length; i += batchSize) {
           if (abortRef.current?.signal.aborted) break
           const chunk = chars.slice(i, i + batchSize).join('')
-          appendDelta(activeId, assistantId, chunk, i === 0 ? { mode, confidence } : undefined)
+          appendDelta(activeId, assistantId, chunk, i === 0 ? { mode, confidence, subgraphVertexCount, subgraphEdgeCount } : undefined)
           await new Promise((r) => setTimeout(r, 8))
         }
         const leanTrace = bc.buildLeanTrace(trimmed, matched, confidence, mode, phi ?? undefined)
@@ -467,7 +483,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         onDelta: (delta) => {
           appendDelta(
             activeId, assistantId, delta,
-            firstChunk ? { mode, confidence } : undefined
+            firstChunk ? { mode, confidence, subgraphVertexCount, subgraphEdgeCount } : undefined
           )
           firstChunk = false
         },

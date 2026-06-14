@@ -132,7 +132,10 @@ export function MessageBubble({ message, onRetryDirect, onFeedback }: MessageBub
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium
                 bg-cyan-900/30 text-cyan-300 border border-cyan-600/25">
                 <span className="text-[10px]">📡</span>
-                <span>EML路由 · {Math.round(message.confidence * 100)}%</span>
+                <span>{message.subgraphVertexCount != null && message.subgraphEdgeCount != null
+                  ? `V:${message.subgraphVertexCount} E:${message.subgraphEdgeCount} · EML路由 · ${Math.round(message.confidence * 100)}%`
+                  : `EML路由 · ${Math.round(message.confidence * 100)}%`
+                }</span>
               </span>
             )}
           </div>
