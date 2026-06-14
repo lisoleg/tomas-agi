@@ -31,17 +31,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = ++toastIdCounter
+    const duration = toast.duration ?? 4000
     const newToast: Toast = {
       ...toast,
       id,
-      duration: toast.duration ?? 4000,
+      duration,
     }
 
     setToasts(prev => [...prev, newToast])
 
     // 自动关闭
-    if (newToast.duration > 0) {
-      setTimeout(() => removeToast(id), newToast.duration)
+    if (duration > 0) {
+      setTimeout(() => removeToast(id), duration)
     }
   }, [removeToast])
 

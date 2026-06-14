@@ -23,6 +23,10 @@ export interface ChatMessage {
   confidence?: number
   /** 太乙互博推理链路（φ 编码 → 概念匹配 → 路由裁决） */
   leanTrace?: string
+  /** 子图顶点数 (Token Bridge 推理时) */
+  subgraphVertexCount?: number
+  /** 子图边数 (Token Bridge 推理时) */
+  subgraphEdgeCount?: number
   /** 用户反馈 */
   feedback?: 'like' | 'dislike' | null
   /** 发给 LLM 的原始 prompt（system + user 消息原文） */

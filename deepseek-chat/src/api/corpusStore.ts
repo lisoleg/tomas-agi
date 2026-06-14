@@ -118,8 +118,9 @@ export async function deleteCorpusEntry(id: number): Promise<CorpusEntry[]> {
 }
 
 // 语料总数
-export function getCorpusCount(): number {
-  return getAllCorpusEntries().length
+export async function getCorpusCount(): Promise<number> {
+  await ensureLoaded()
+  return cachedEntries.length
 }
 
 // 清空语料库

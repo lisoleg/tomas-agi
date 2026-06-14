@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react'
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
 
 export interface EMLGraphData {
@@ -172,6 +172,43 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
     }
     return null
   }, [graphData, selectedCorpus, selectedKnowledgeId, selectedRelationKey, showAllByDefault])
+
+  // ── 导出当前图谱为 JSON 文件（必须在 filteredData 声明之后）──
+  const handleExport = useCallback(() => {
+    const dataToExport = filteredData ?? graphData
+    if (!dataToExport) return
+    const now = new Date().toISOString()
+    const domain = selectedCorpus ?? 'all'
+    const json = {
+      version: '1.0',
+      exported_at: now,
+      domain,
+      vertices: dataToExport.vertices.map(v => ({
+        id: v.id,
+        label: v.label,
+        delta: v.delta,
+        info_existence: v.info_existence,
+        corpusName: v.corpusName ?? null,
+      })),
+      edges: dataToExport.edges
+        .filter(e => e.weight >= edgeWeightThreshold)
+        .map(e => ({
+          src: e.src,
+          dst: e.dst,
+          weight: e.weight,
+          associator_flag: e.associator_flag,
+        })),
+    }
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `eml-graph-export-${Date.now()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [filteredData, graphData, selectedCorpus, edgeWeightThreshold])
 
   // 可见边数统计（用于滑块旁的计数）
   const visibleEdgeCount = useMemo(() => {
@@ -483,7 +520,7 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
         setTooltip({
           x: event.pageX,
           y: event.pageY,
-          content: `${d.label}\nδ=${d.delta.toFixed(3)}  𝔵(X)=${(d.info_existence ?? d.delta).toFixed(3)}`,
+          content: `${d.label}\nδ=${d.delta.toFixed(3)}  𝔇(X)=${(d.info_existence ?? d.delta).toFixed(3)}`,
         })
       })
       .on('mouseout', () => {
@@ -541,7 +578,7 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
     })
 
     // 仿真结束后自动适配缩放 —— 确保所有节点/关系都在可视区域内
-    .on('end', () => {
+    simulation.on('end', () => {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
       nodes.forEach((d: any) => {
         minX = Math.min(minX, d.x - d.radius - pad)
@@ -727,6 +764,17 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
           <span className="text-[9px] text-textSecondary/40 whitespace-nowrap">
             ({visibleEdgeCount}/{filteredData.edges.length})
           </span>
+          {/* 导出按钮 */}
+          <button
+            onClick={handleExport}
+            title="导出当前图谱为 JSON 文件"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-white/5 hover:bg-white/10 text-textSecondary/60 hover:text-textPrimary transition-colors border border-white/10 hover:border-white/20"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17l3.75-1.5a4 4 0 010 2.5 0l7.5 0a4 4 0 010 2.5 0L21 17" />
+            </svg>
+            导出
+          </button>
         </div>
       )}
 

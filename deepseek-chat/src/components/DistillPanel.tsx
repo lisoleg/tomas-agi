@@ -213,6 +213,20 @@ function ModeBadge({ mode }: { mode: string }) {
 export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }: DistillPanelProps) {
   // 蒸馏状态
   const [phase, setPhase] = useState<DistillPhase>('idle')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  // 蒸馏计时器：phase 进入工作时启动，回到 idle/done 时重置
+  useEffect(() => {
+    const isWorking = phase === 'extracting_concepts' || phase === 'extracting_relations' || phase === 'building_graph'
+    if (isWorking) {
+      setElapsedSeconds(0)
+      const timer = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1)
+      }, 1000)
+      return () => clearInterval(timer)
+    } else {
+      setElapsedSeconds(0)
+    }
+  }, [phase])
   const [inputText, setInputText] = useState('')
   const [concepts, setConcepts] = useState<DistillConcept[]>([])
   const [relations, setRelations] = useState<DistillRelation[]>([])
@@ -221,7 +235,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
   const [emlBuffer, setEmlBuffer] = useState<ArrayBuffer | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [currentDomain, setCurrentDomain] = useState('')
-
+  const toast = useToast()
   // 知识持久化存储（后端 API）
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
   const knowledgeSavedRef = useRef(false)
@@ -233,8 +247,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
   // 数据加载状态
   const [dataLoading, setDataLoading] = useState(true)
   const [dataError, setDataError] = useState<string | null>(null)
-  const { toastSuccess, toastError, toastWarning, toastInfo } = useToast()
-  
+  // ⚠️ 注意：useToast() 已在上方调用，此处不再重复  
   // 加载知识条目和语料条目
   useEffect(() => {
     async function loadData() {
@@ -258,15 +271,15 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             const graphJson = await graphRes.json()
             console.log('[DistillPanel] 图谱API返回:', JSON.stringify(graphJson).slice(0, 300))
             if (graphJson.success && graphJson.triples.length > 0) {
-              const conceptSet = new Set(graphJson.concepts)
+              const conceptSet = new Set<string>(graphJson.concepts as string[])
               // 确保 triples 中的 subject/object 都在 concept 集合中
-              for (const t of graphJson.triples) {
+              for (const t of graphJson.triples as any[]) {
                 conceptSet.add(t.subject)
                 if (t.object && !/^\d+(\.\d+)?$/.test(t.object) && t.object.length < 100) {
                   conceptSet.add(t.object)
                 }
               }
-              const conceptList = Array.from(conceptSet)
+              const conceptList = Array.from(conceptSet) as string[]
               const nameToId = new Map<string, number>()
               conceptList.forEach((name, i) => nameToId.set(name, i))
 
@@ -275,12 +288,12 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                 label: name,
                 delta: Math.random() * 0.3 + 0.05,  // 后端暂无 delta，用小随机值占位
                 info_existence: 0.5,
-                corpusName: null
+                corpusName: undefined
               }))
 
-              const edges = graphJson.triples
-                .filter(t => nameToId.has(t.subject) && nameToId.has(t.object))
-                .map(t => ({
+              const edges = (graphJson.triples as any[])
+                .filter((t: any) => nameToId.has(t.subject) && nameToId.has(t.object))
+                .map((t: any) => ({
                   src: nameToId.get(t.subject)!,
                   dst: nameToId.get(t.object)!,
                   weight: 0.3 + Math.random() * 0.4,  // 后端暂无权重，随机生成
@@ -296,12 +309,12 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
               const conceptItems = items.filter(i => i.type === 'concept')
               const conceptNames = conceptItems.map(i => i.label).filter(Boolean)
               if (conceptNames.length > 0) {
-                const vertices = conceptNames.map((name, i) => ({
+              const vertices = conceptNames.map((name: string, i: number) => ({
                   id: i,
                   label: name,
                   delta: Math.random() * 0.3 + 0.05,
                   info_existence: 0.5,
-                  corpusName: null as string | undefined
+                  corpusName: undefined
                 }))
                 setGraphData({ vertices, edges: [] })
                 setGraphFromAPI(true)
@@ -320,7 +333,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
         const message = err instanceof Error ? err.message : '加载数据失败'
         setDataError(message)
         console.error('加载数据失败:', err)
-        toastError(`加载数据失败：${message}，请检查后端服务器（http://localhost:5000）`)
+        toast.error(`加载数据失败：${message}，请检查后端服务器（http://localhost:5000）`)
       } finally {
         setDataLoading(false)
       }
@@ -413,7 +426,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             label: v.label,
             delta: v.delta,
             info_existence: v.info_existence ?? 0,
-            corpusName: (v as any).corpusName ?? null
+            corpusName: (v as any).corpusName ?? undefined
           })),
           edges: graph.edges.map(e => ({
             src: e.src,
@@ -478,7 +491,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             src: conceptNameToId.get(r.src)!,
             dst: conceptNameToId.get(r.dst)!,
             weight: r.strength ?? 0.5,
-            associator_flag: r.type ?? 0
+            associator_flag: Number(r.type) || 0
           }))
         setGraphData({ vertices, edges })
         console.log(`[DistillPanel] 蒸馏结果已同步构建 graphData: ${vertices.length} 顶点, ${edges.length} 边`)
@@ -653,7 +666,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
       setGraphFromAPI(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : '加载失败'
-      toastError(`加载 EML 文件失败：${message}`)
+      toast.error(`加载 EML 文件失败：${message}`)
     }
   }, [concepts])
 
@@ -698,7 +711,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
       setGraphFromAPI(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : '加载失败'
-      toastError(`加载失败：${message}`)
+      toast.error(`加载失败：${message}`)
     }
   }, [emlBuffer, concepts])
 
@@ -774,7 +787,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
 
       setMergeSummary(null)
     } catch (err) {
-      toastError(`合并失败：${err instanceof Error ? err.message : '未知错误'}`)
+      toast.error(`合并失败：${err instanceof Error ? err.message : '未知错误'}`)
     } finally {
       setMerging(false)
     }
@@ -940,6 +953,25 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             🗑️ 清空
           </button>
         </div>
+
+        {/* 蒸馏进度条 */}
+        {isWorking && (
+          <div className="space-y-1.5 p-3 rounded-lg border border-white/10 bg-white/5">
+            <div className="flex items-center justify-between text-xs text-textSecondary">
+              <span>{PHASE_LABELS[phase]}</span>
+              <span>
+                {progress}% · 已用 {Math.floor(elapsedSeconds/60)}:{(elapsedSeconds%60).toString().padStart(2,'0')}
+              </span>
+            </div>
+            {/* 进度条 */}
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-accent transition-all duration-300 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* 加载状态 */}
         {dataLoading && (
@@ -1883,8 +1915,8 @@ function KnowledgeBrowser({
   /** 当前选中的关系 key（格式 "src-dst"），用于关系列表高亮 */
   selectedRelationKey,
 }: {
-  graph: import('../api/distiller').EMLGraphData
-  onGraphUpdated: (newGraph: import('../api/distiller').EMLGraphData) => void
+  graph: import('../types').EMLGraphData
+  onGraphUpdated: (newGraph: import('../types').EMLGraphData) => void
   conceptNames?: Map<number, string>
   /** 点击概念时回调 → 切换到图谱 Tab 显示该概念邻域 */
   onSelectConcept?: (vertexId: number) => void
@@ -1893,6 +1925,29 @@ function KnowledgeBrowser({
   selectedRelationKey?: string | null
 }) {
   const [deleting, setDeleting] = useState(false)
+  const toast = useToast()
+
+  // 搜索/过滤状态
+  const [conceptSearch, setConceptSearch] = useState('')
+  const [relationSearch, setRelationSearch] = useState('')
+
+  // 过滤概念列表
+  const filteredVertices = conceptSearch.trim()
+    ? graph.vertices.filter(v => {
+        const label = getDisplayName(v.id, v.label)
+        return label.toLowerCase().includes(conceptSearch.toLowerCase())
+      })
+    : graph.vertices
+
+  // 过滤关系列表
+  const filteredEdges = relationSearch.trim()
+    ? graph.edges.filter(e => {
+        const srcLabel = vertexLabel.get(e.src) ?? `v${e.src}`
+        const dstLabel = vertexLabel.get(e.dst) ?? `v${e.dst}`
+        const q = relationSearch.toLowerCase()
+        return srcLabel.toLowerCase().includes(q) || dstLabel.toLowerCase().includes(q)
+      })
+    : graph.edges
 
   // 构建关系标签映射（优先使用真实概念名）
   const vertexLabel = new Map<number, string>()
@@ -1926,7 +1981,7 @@ function KnowledgeBrowser({
       )
       onGraphUpdated(newGraph)
     } catch (err) {
-      toastError(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
+      toast.error(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
     } finally {
       setDeleting(false)
     }
@@ -1946,7 +2001,7 @@ function KnowledgeBrowser({
       )
       onGraphUpdated(newGraph)
     } catch (err) {
-      toastError(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
+      toast.error(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
     } finally {
       setDeleting(false)
     }
@@ -1978,18 +2033,28 @@ function KnowledgeBrowser({
         </div>
       </div>
 
-      {/* 概念列表 */}
+        {/* 概念列表 */}
       <div className="border border-white/10 rounded-lg overflow-hidden">
         <div className="px-3 py-2 bg-emerald-600/10 text-sm font-medium border-b border-white/10 flex items-center gap-2">
           <span>🧩</span>
           <span>概念列表</span>
-          <span className="text-xs text-textSecondary ml-auto">{graph.vertices.length} 条</span>
+          <span className="text-xs text-textSecondary ml-auto">{filteredVertices.length}/{graph.vertices.length} 条</span>
+        </div>
+        {/* 搜索框 */}
+        <div className="px-2 py-1.5 border-b border-white/5">
+          <input
+            type="text"
+            value={conceptSearch}
+            onChange={e => setConceptSearch(e.target.value)}
+            placeholder="搜索概念名称…"
+            className="w-full px-2.5 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 text-textPrimary placeholder-textSecondary/40 focus:outline-none focus:border-accent/50 transition-colors"
+          />
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {graph.vertices.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-textSecondary">暂无概念</div>
+          {filteredVertices.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-textSecondary">{conceptSearch.trim() ? '无匹配结果' : '暂无概念'}</div>
           ) : (
-            graph.vertices.map(v => (
+            filteredVertices.map(v => (
               <div
                 key={v.id}
                 className={`flex items-center gap-3 px-4 py-2 border-b border-white/5 transition-colors hover:bg-indigo-600/20 ${onSelectConcept ? 'cursor-pointer group' : 'group'}`}
@@ -2022,16 +2087,26 @@ function KnowledgeBrowser({
         <div className="px-3 py-2 bg-indigo-600/10 text-sm font-medium border-b border-white/10 flex items-center gap-2">
           <span>🔗</span>
           <span>关系列表</span>
-          <span className="text-xs text-textSecondary ml-auto">{graph.edges.length} 条</span>
+          <span className="text-xs text-textSecondary ml-auto">{filteredEdges.length}/{graph.edges.length} 条</span>
+        </div>
+        {/* 搜索框 */}
+        <div className="px-2 py-1.5 border-b border-white/5">
+          <input
+            type="text"
+            value={relationSearch}
+            onChange={e => setRelationSearch(e.target.value)}
+            placeholder="搜索关系（源→目标）…"
+            className="w-full px-2.5 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 text-textPrimary placeholder-textSecondary/40 focus:outline-none focus:border-accent/50 transition-colors"
+          />
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {graph.edges.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-textSecondary">暂无关系</div>
+          {filteredEdges.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-textSecondary">{relationSearch.trim() ? '无匹配结果' : '暂无关系'}</div>
           ) : (
-            graph.edges.map((e, idx) => {
+            filteredEdges.map((e, idx) => {
               const srcLabel = vertexLabel.get(e.src) ?? `v${e.src}`
               const dstLabel = vertexLabel.get(e.dst) ?? `v${e.dst}`
-              const etype = e.associator_flag === 1 ? 'causes' : 'related_to'
+              const etype = e.associatorFlag === 1 ? 'causes' : 'related_to'
               return (
                 <div
                   key={idx}
