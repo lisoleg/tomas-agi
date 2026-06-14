@@ -999,13 +999,13 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             </span>
             <span className="text-xs text-textSecondary">
               {concepts.length} 个概念 · {relations.length} 条关系
-              {conflicts.length > 0 && ` · ⚠️ ${conflicts.length} 项重叠待确认（缺省忽略）`}
+              {conflicts.length > 0 && ` · ⚠️ ${conflicts.length} 项重叠待确认`}
               {conflicts.length === 0 && ' · 无领域重叠'}
             </span>
           </div>
         )}
 
-        {/* 知识冲突检测 UI — 缺省忽略，需用户逐一确认 */}
+        {/* 知识冲突检测 UI — 需用户逐一确认 */}
         {conflicts.length > 0 && (
           <div className="mt-6 rounded-xl border border-amber-600/20 bg-amber-900/5 overflow-hidden">
             {/* 折叠条 */}
@@ -1016,7 +1016,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
               <div className="flex items-center gap-2">
                 <span className="text-sm">⚠️</span>
                 <span className="text-xs text-amber-300/80">
-                  检测到 <span className="font-semibold">{conflicts.length}</span> 项知识重叠，缺省忽略
+                  检测到 <span className="font-semibold">{conflicts.length}</span> 项知识重叠，请确认处理方式
                 </span>
                 <span className="text-[10px] text-amber-400/40">
                   （{conflictsExpanded ? '点击收起' : '点击展开'}逐条确认）
@@ -1032,7 +1032,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             {conflictsExpanded && (
               <div className="px-4 pb-4 border-t border-amber-600/15">
                 <p className="text-[11px] text-amber-400/50 mt-3 mb-3">
-                  以下概念在不同语料中有不同定义，请逐条确认处理方式（缺省已选"忽略"）。
+                  以下概念在不同语料中有不同定义，请逐条确认处理方式。
                 </p>
                 {conflicts.map(c => (
                   <div key={c.id} className="mb-3 p-3 rounded-lg border border-amber-600/20 bg-black/20">
@@ -1054,7 +1054,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                       </div>
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
-                      {(['keep_old', 'keep_new', 'merge', 'ignore'] as const).map(decision => {
+                      {(['keep_old', 'keep_new', 'ignore'] as const).map(decision => {
                         const isSelected = conflictDecisions[c.id] === decision
                         return (
                           <button
@@ -1068,7 +1068,6 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                           >
                             {decision === 'keep_old' && '📌 保留旧的'}
                             {decision === 'keep_new' && '🆕 保留新的'}
-                            {decision === 'merge' && '🔀 合并两者'}
                             {decision === 'ignore' && '👁️ 忽略'}
                           </button>
                         )
@@ -1084,7 +1083,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                     }}
                     className="px-5 py-1.5 rounded-md text-xs font-medium transition-colors bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-600/30"
                   >
-                    ✅ 确认全部（缺省忽略）
+                    ✅ 确认全部
                   </button>
                 </div>
               </div>
@@ -1220,7 +1219,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                         setActiveTab('graph')
                       }
                     }}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 group transition-colors ${selectedKnowledgeId != null && graphData?.vertices.find(v => v.id === selectedKnowledgeId)?.label === item.label ? 'bg-indigo-600/15 border-l-2 border-l-indigo-400' : ''}`}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 group transition-colors pointer-events-auto ${selectedKnowledgeId != null && graphData?.vertices.find(v => v.id === selectedKnowledgeId)?.label === item.label ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                   >
                     <span className="font-medium min-w-0 truncate flex-1" title={item.label}>{item.label}</span>
                     <span className="text-textSecondary/60 text-xs flex-shrink-0">{item.extra}</span>
@@ -1255,7 +1254,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                           setSelectedCorpusName(null)
                           setActiveTab('graph')
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 transition-colors ${selectedKnowledgeId === v.id ? 'bg-indigo-600/15 border-l-2 border-l-indigo-400' : ''}`}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 transition-colors pointer-events-auto ${selectedKnowledgeId === v.id ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                       >
                         <span className="font-medium min-w-0 truncate flex-1" title={realName}>{realName}</span>
                         <span className="text-accent font-mono text-xs flex-shrink-0">𝕏={v.delta.toFixed(3)}</span>
@@ -1273,24 +1272,25 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                 </div>
                 {filteredDistilledConcepts
                   .sort((a, b) => (b.info_existence ?? 0) - (a.info_existence ?? 0))
-                  .map((c, idx) => (
+                  .map((c, idx) => {
+                    const matchedV = graphData?.vertices.find(v => v.label === c.concept)
+                    const isSelected = matchedV ? selectedKnowledgeId === matchedV.id : false
+                    return (
                     <div
                       key={`dc-${idx}`}
                       onClick={() => {
-                        // 尝试在 graphData 中找到匹配的顶点 ID
-                        const matchedV = graphData?.vertices.find(v => v.label === c.concept)
                         if (matchedV) {
                           setSelectedKnowledgeId(matchedV.id)
                           setSelectedCorpusName(null)
                           setActiveTab('graph')
                         }
                       }}
-                      className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 transition-colors"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 transition-colors pointer-events-auto ${isSelected ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                     >
                       <span className="font-medium min-w-0 truncate flex-1" title={c.concept}>{c.concept}</span>
                       <span className="text-accent font-mono text-xs flex-shrink-0">𝕀={(c.info_existence ?? 0).toFixed(2)}</span>
                     </div>
-                  ))}
+                    )})}
               </>
             )}
 
@@ -1344,7 +1344,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                         }
                       }
                     }}
-                    className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 group transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 group transition-colors pointer-events-auto"
                   >
                     <span className="min-w-0 truncate flex-1" title={item.label}>{item.label}</span>
                     <span className="text-textSecondary/60 text-xs flex-shrink-0">{item.extra}</span>
@@ -1375,12 +1375,12 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                         setSelectedCorpusName(null)
                         setActiveTab('graph')
                       }}
-                      className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 transition-colors pointer-events-auto"
                     >
                       <span className="text-sm font-medium text-emerald-300 shrink-0 truncate" title={srcLabel}>{srcLabel}</span>
                       <span className="text-accent text-[10px] shrink-0">—{RELATION_TYPE_LABELS[etype] || etype}→</span>
                       <span className="text-sm font-medium text-indigo-300 shrink-0 truncate" title={dstLabel}>{dstLabel}</span>
-                      <span className="text-textSecondary text-xs shrink-0">w={e.weight.toFixed(2)}</span>
+                      <span className="text-textSecondary text-xs shrink-0">权重:{e.weight.toFixed(2)}</span>
                     </div>
                   )
                 })}
@@ -1393,28 +1393,29 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                 <div className="px-3 py-1.5 text-[11px] text-textSecondary/60 bg-white/[0.02] border-b border-white/5">
                   🧪 蒸馏结果 · 关系 R={relations.length}
                 </div>
-                {relations.map((r, idx) => (
+                {relations.map((r, idx) => {
+                  const matchedSrc = graphData?.vertices.find(v => v.label === r.src)
+                  const isSelected = matchedSrc ? selectedKnowledgeId === matchedSrc.id : false
+                  return (
                   <div
                     key={`dr-${idx}`}
                     onClick={() => {
-                      // 尝试在 graphData 中找到匹配的顶点 ID
-                      const matchedSrc = graphData?.vertices.find(v => v.label === r.src)
                       if (matchedSrc) {
                         setSelectedKnowledgeId(matchedSrc.id)
                         setSelectedCorpusName(null)
                         setActiveTab('graph')
                       }
                     }}
-                    className="flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/10 transition-colors"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 cursor-pointer hover:bg-indigo-600/20 transition-colors pointer-events-auto ${isSelected ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                   >
                     <span className="truncate flex-1">
                       <span className="font-medium" title={r.src}>{r.src}</span>
                       <span className="text-accent text-xs mx-1">—{RELATION_TYPE_LABELS[r.type] || r.type}→</span>
                       <span className="font-medium" title={r.dst}>{r.dst}</span>
                     </span>
-                    <span className="text-textSecondary text-xs flex-shrink-0">{r.strength.toFixed(2)}</span>
+                    <span className="text-textSecondary text-xs flex-shrink-0">权重:{r.strength.toFixed(2)}</span>
                   </div>
-                ))}
+                  )})}
               </>
             )}
 
@@ -1477,7 +1478,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                       setSelectedKnowledgeId(null) // 清除知识选择
                       setActiveTab('graph') // 自动切换到图谱 Tab
                     }}
-                    className={`px-3 py-2.5 border-b border-white/5 last:border-b-0 hover:bg-white/5 group cursor-pointer transition-colors ${selectedCorpusName === entry.domain ? 'bg-indigo-600/15 border-l-2 border-l-indigo-400' : ''}`}
+                    className={`px-3 py-2.5 border-b border-white/5 last:border-b-0 hover:bg-indigo-600/20 group cursor-pointer transition-colors ${selectedCorpusName === entry.domain ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 text-textSecondary font-medium">
@@ -1639,7 +1640,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                             searchResult.matchedConcepts.map((m, idx) => (
                               <div
                                 key={`${m.vertexId}-${idx}`}
-                                className="flex items-center gap-3 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 hover:bg-white/5"
+                                className="flex items-center gap-3 px-3 py-2 text-sm border-b border-white/5 last:border-b-0 hover:bg-indigo-600/20 cursor-pointer"
                               >
                                 <span className="text-textSecondary w-5 text-right flex-shrink-0">
                                   {idx + 1}.
@@ -1738,20 +1739,6 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                       }
                       if (vizGraph) { setGraphData(vizGraph); setGraphFromAPI(false) }
                     }}
-                    onSelectConcept={(vertexId) => {
-                      setSelectedKnowledgeId(vertexId)
-                      setSelectedCorpusName(null)
-                      setSelectedRelationKey(null) // 清除关系选中态
-                      setActiveTab('graph')
-                    }}
-                    onSelectRelation={(srcId, dstId) => {
-                      // 选择关系时，清除节点选中态，让 selectedRelationKey 生效（显示两端联合邻域 + 高亮边）
-                      setSelectedKnowledgeId(null)
-                      setSelectedCorpusName(null)
-                      setSelectedRelationKey(`${srcId}-${dstId}`)
-                      setActiveTab('graph')
-                    }}
-                    selectedRelationKey={selectedRelationKey}
                   />
                 )}
               </div>
@@ -2005,7 +1992,7 @@ function KnowledgeBrowser({
             graph.vertices.map(v => (
               <div
                 key={v.id}
-                className={`flex items-center gap-3 px-4 py-2 border-b border-white/5 transition-colors ${onSelectConcept ? 'hover:bg-white/5 cursor-pointer group' : 'hover:bg-white/5 group'}`}
+                className={`flex items-center gap-3 px-4 py-2 border-b border-white/5 transition-colors hover:bg-indigo-600/20 ${onSelectConcept ? 'cursor-pointer group' : 'group'}`}
                 onClick={() => onSelectConcept?.(v.id)}
                 title={onSelectConcept ? '点击查看此概念的知识图谱邻域' : undefined}
               >
@@ -2048,14 +2035,14 @@ function KnowledgeBrowser({
               return (
                 <div
                   key={idx}
-                  className={`flex flex-col gap-0.5 px-4 py-2.5 border-b border-white/5 transition-colors ${onSelectRelation ? 'hover:bg-white/5 cursor-pointer group' : 'hover:bg-white/5 group'} ${selectedRelationKey === `${e.src}-${e.dst}` ? 'bg-indigo-600/15 border-l-2 border-l-indigo-400' : ''}`}
+                  className={`flex flex-col gap-0.5 px-4 py-2.5 border-b border-white/5 transition-colors hover:bg-indigo-600/20 ${onSelectRelation ? 'cursor-pointer group' : 'group'} ${selectedRelationKey === `${e.src}-${e.dst}` ? 'bg-indigo-600/30 border-l-2 border-l-indigo-400' : ''}`}
                   onClick={() => onSelectRelation?.(e.src, e.dst)}
                   title={onSelectRelation ? '点击查看此关系的知识图谱邻域' : undefined}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-emerald-300 shrink-0">{srcLabel}</span>
                     <span className="text-textSecondary/40 text-xs">—</span>
-                    <span className="text-xs text-amber-300/80 px-1.5 py-0.5 rounded bg-amber-600/10 shrink-0 font-medium">{etype}</span>
+                    <span className="text-xs text-amber-300/80 px-1.5 py-0.5 rounded bg-amber-600/10 shrink-0 font-medium">{RELATION_TYPE_LABELS[etype] || etype}</span>
                     <span className="text-textSecondary/40 text-xs">→</span>
                     <span className="text-sm font-medium text-indigo-300 shrink-0">{dstLabel}</span>
                   </div>

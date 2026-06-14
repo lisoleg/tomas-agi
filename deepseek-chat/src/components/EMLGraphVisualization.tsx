@@ -261,15 +261,33 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
     // 大幅提高节点基础半径，确保文字可读
     const baseRadius = isLargeGraph ? 14 : (isMediumGraph ? 16 : 18)
     const deltaScale = isLargeGraph ? 20 : (isMediumGraph ? 30 : 38)
-    const nodes = vertices.map(v => ({
-      id: v.id,
-      label: v.label,
-      delta: v.delta,
-      info_existence: v.info_existence,
-      radius: Math.max(baseRadius, baseRadius + v.delta * deltaScale),
-      x: Math.random() * (cw - 80) + 40,
-      y: Math.random() * (ch - 80) + 40,
-    }))
+
+    // 找到主概念（delta 最大）—— 固定在画布中心
+    let mainConceptId = -1
+    let maxDelta = -Infinity
+    for (const v of vertices) {
+      if (v.delta > maxDelta) { maxDelta = v.delta; mainConceptId = v.id }
+    }
+
+    // Archimedean spiral 初始布局 —— 所有节点从中心螺旋展开，保证起点都在可视区
+    const angleStep = (2 * Math.PI) / Math.max(nodeCount, 1)
+    const spiralMaxR = Math.min(cw, ch) * 0.38
+    const nodes = vertices.map((v, i) => {
+      const isMain = v.id === mainConceptId && nodeCount > 1
+      const angle = (i + (isMain ? 0 : 1)) * angleStep  // 主概念跳过螺旋,非主概念从索引1开始排
+      const r = isMain ? 0 : (i / Math.max(nodeCount - 1, 1)) * spiralMaxR
+      return {
+        id: v.id,
+        label: v.label,
+        delta: v.delta,
+        info_existence: v.info_existence,
+        radius: Math.max(baseRadius, baseRadius + v.delta * deltaScale),
+        x: cw / 2 + r * Math.cos(angle),
+        y: ch / 2 + r * Math.sin(angle),
+        fx: isMain ? cw / 2 : undefined,
+        fy: isMain ? ch / 2 : undefined,
+      }
+    })
 
     const links = filteredEdges.map(e => ({
       source: e.src,
@@ -327,21 +345,21 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
       chargeStrength = Math.max(-8000, -800 - nodeCount * 50)
       collidePadding = 4
       forceStrength = 0.7
-      centerStrength = 0.08
+      centerStrength = 0.12
     } else if (nodeCount > 40) {
       // 中图：较紧凑
       linkDist = Math.max(100, 60 + nodeCount)
       chargeStrength = Math.max(-5000, -600 - nodeCount * 40)
       collidePadding = 8
       forceStrength = 0.5
-      centerStrength = 0.06
+      centerStrength = 0.18
     } else {
       // 小图：宽松可读
       linkDist = Math.max(160, Math.min(350, 80 + nodeCount * 3))
       chargeStrength = Math.max(-2000, Math.min(-400, -300 - nodeCount * 12))
       collidePadding = 14
       forceStrength = 0.3
-      centerStrength = 0.03
+      centerStrength = 0.25
     }
 
     const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
@@ -378,8 +396,18 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
         const t = d.delta
         return `rgb(${Math.round(99 + t * 156)}, ${Math.round(102 + t * 100)}, ${Math.round(241 - t * 100)})`
       })
-      .attr('stroke', (d: any) => d.id === selectedNodeId ? '#fbbf24' : '#1e1b4b')
-      .attr('stroke-width', (d: any) => d.id === selectedNodeId ? 3 : 1.5)
+      .attr('stroke', (d: any) => {
+        if (d.id === selectedNodeId) return '#fbbf24'
+        if (d.fx !== undefined) return '#f59e0b' // 主概念：金色描边
+        return '#1e1b4b'
+      })
+      .attr('stroke-width', (d: any) => {
+        if (d.id === selectedNodeId) return 3
+        if (d.fx !== undefined) return 2.5 // 主概念：较粗描边
+        return 1.5
+      })
+      // 主概念光晕效果
+      .style('filter', (d: any) => d.fx !== undefined ? 'drop-shadow(0 0 8px rgba(245,158,11,0.5))' : 'none')
       .style('cursor', 'pointer')
       .call(drag(simulation) as any)
 
@@ -394,12 +422,15 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
         const maxChars = Math.max(3, Math.floor(d.radius / 3.5))  // 允许更多字符
         return d.label.length > maxChars ? d.label.slice(0, maxChars) + '\u2026' : d.label
       })
-      .attr('font-size', (d: any) => Math.max(9, Math.min(d.radius * 0.5, 16)))  // 提高字体下限和上限
-      .attr('fill', '#fde047')
+      .attr('font-size', (d: any) => {
+        const base = Math.max(9, Math.min(d.radius * 0.5, 16))
+        return d.fx !== undefined ? base * 1.3 : base // 主概念标签放大 30%
+      })
+      .attr('fill', (d: any) => d.fx !== undefined ? '#fef08a' : '#fde047') // 主概念更亮
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'central')
       .style('pointer-events', 'none')
-      .style('font-weight', '600')
+      .style('font-weight', (d: any) => d.fx !== undefined ? '800' : '600') // 主概念更粗
       .style('user-select', 'none')
       .style('opacity', showStaticLabels ? 1 : 0)
 
@@ -507,6 +538,27 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
       g.selectAll<SVGTextElement, any>('.corpus-labels text')
         .attr('x', (d: any) => d.x)
         .attr('y', (d: any) => d.y + d.radius + 4)
+    })
+
+    // 仿真结束后自动适配缩放 —— 确保所有节点/关系都在可视区域内
+    .on('end', () => {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      nodes.forEach((d: any) => {
+        minX = Math.min(minX, d.x - d.radius - pad)
+        minY = Math.min(minY, d.y - d.radius - pad)
+        maxX = Math.max(maxX, d.x + d.radius + pad)
+        maxY = Math.max(maxY, d.y + d.radius + pad)
+      })
+      const bbW = Math.max(maxX - minX, 50)
+      const bbH = Math.max(maxY - minY, 50)
+      const margin = 0.92  // 留 8% 边距
+      const scale = Math.min(cw / bbW, ch / bbH, nodeCount <= 5 ? 2.5 : nodeCount <= 10 ? 2.0 : 1.8) * margin
+      const tx = (cw - bbW * scale) / 2 - minX * scale
+      const ty = (ch - bbH * scale) / 2 - minY * scale
+      svg.transition().duration(600).call(
+        zoom.transform as any,
+        d3.zoomIdentity.translate(tx, ty).scale(scale)
+      )
     })
 
     } catch (err) {
@@ -684,6 +736,28 @@ export const EMLGraphVisualization: React.FC<EMLGraphVisualizationProps> = ({
           <span className="text-[11px] text-amber-300/90 font-medium">
             {titleText}
           </span>
+        </div>
+      )}
+
+      {/* 图例：关系颜色 */}
+      {!showEmptyState && filteredData && (
+        <div className="absolute bottom-2 left-2 z-10 bg-black/70 backdrop-blur-sm rounded-md px-2.5 py-1.5 border border-white/10">
+          <div className="text-[9px] text-textSecondary/50 mb-1.5">关系类型</div>
+          {[
+            [0, '#6366f1', '一般关联'],
+            [1, '#f59e0b', '因果'],
+            [2, '#10b981', '组成/部分'],
+            [3, '#ec4899', '对比/对立'],
+            [4, '#8b5cf6', '层级'],
+          ].map(([flag, color, label]) => (
+            <div key={String(flag)} className="flex items-center gap-1.5 leading-none mb-0.5 last:mb-0">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: color as string }}
+              />
+              <span className="text-[10px] text-textSecondary/70 whitespace-nowrap">{label as string}</span>
+            </div>
+          ))}
         </div>
       )}
 
