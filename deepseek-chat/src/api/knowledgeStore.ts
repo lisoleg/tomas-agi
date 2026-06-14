@@ -40,23 +40,25 @@ export async function getAllKnowledgeItems(): Promise<KnowledgeItem[]> {
   return [...cachedItems].sort((a, b) => b.createdAt - a.createdAt)
 }
 
-/** 批量追加知识条目 */
+/** 批量追加知识条目（一次请求发送数组） */
 export async function saveKnowledgeItems(items: Omit<KnowledgeItem, 'id' | 'createdAt'>[]): Promise<KnowledgeItem[]> {
   await ensureLoaded()
   const now = Date.now()
-  for (const item of items) {
-    try {
-      await fetch(`${API_BASE}/knowledge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...item,
-          createdAt: now
-        })
-      })
-    } catch (e) {
-      console.error('保存知识条目失败', e)
+  try {
+    // 后端期望接收数组格式
+    const res = await fetch(`${API_BASE}/knowledge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(items.map(item => ({
+        ...item,
+        createdAt: now
+      })))
+    })
+    if (!res.ok) {
+      console.error(`保存知识条目失败: HTTP ${res.status}`)
     }
+  } catch (e) {
+    console.error('保存知识条目失败', e)
   }
   // 重新加载
   cacheLoaded = false

@@ -26,7 +26,7 @@ const API_BASE = 'http://localhost:5000/api'
 
 // 加载缓存
 async function ensureLoaded() {
-  if (cacheLoaded || loading) return
+  if (cacheLoaded) return
   loading = true
   if (!loadPromise) {
     loadPromise = (async () => {
@@ -34,11 +34,10 @@ async function ensureLoaded() {
         const res = await fetch(`${API_BASE}/corpus`)
         const data = await res.json()
         cachedEntries = data.success ? data.data : []
-        cacheLoaded = true
       } catch {
         cachedEntries = []
-        cacheLoaded = true
       } finally {
+        cacheLoaded = true
         loading = false
       }
     })()
@@ -47,14 +46,10 @@ async function ensureLoaded() {
 }
 
 // 读取全部语料条目，按时间倒序（最新在前）
-export function getAllCorpusEntries(): CorpusEntry[] {
-  // 同步返回缓存（如果已加载）
-  if (cacheLoaded) {
-    return [...cachedEntries].sort((a, b) => b.createdAt - a.createdAt)
-  }
-  // 未加载时返回空数组，并触发后台加载
-  ensureLoaded()
-  return []
+// 注意：首次调用需要等待后端 API 加载完成
+export async function getAllCorpusEntries(): Promise<CorpusEntry[]> {
+  await ensureLoaded()
+  return [...cachedEntries].sort((a, b) => b.createdAt - a.createdAt)
 }
 
 // 追加一条语料

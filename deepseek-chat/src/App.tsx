@@ -10,6 +10,7 @@ import { Sidebar } from './components/Sidebar'
 import { useChat } from './hooks/useChat'
 import { useToast } from './components/Toast'
 import type { AppMode, ChatEMLState, EMLGraphData } from './types'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 export default function App() {
   const { error: toastError } = useToast()
@@ -160,7 +161,9 @@ export default function App() {
         ) : mode === 'docs' ? (
           <TechDocs />
         ) : (
-          <DistillPanel apiKey={chat.apiKey} externalBridgeClient={bridgeClient.current} externalEMLState={emlState} />
+          <ErrorBoundary>
+            <DistillPanel apiKey={chat.apiKey} externalBridgeClient={bridgeClient.current} externalEMLState={emlState} />
+          </ErrorBoundary>
         )}
       </main>
 

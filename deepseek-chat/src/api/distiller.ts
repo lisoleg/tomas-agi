@@ -92,22 +92,38 @@ export async function extractConcepts(
   text: string,
   maxConcepts: number = 50
 ): Promise<DistillConcept[]> {
-  const prompt = `你是一个知识提取专家。请从以下文本中提取最多 ${maxConcepts} 个关键概念。
+  const prompt = `你是一个知识图谱实体提取专家。参考 OwnThink 知识图谱模型
+（实体 → 属性 → 值），请从以下文本中提取最多 ${maxConcepts} 个**知识实体**。
 
-对每个概念，请提供：
-1. concept: 概念名称（简洁，2-6字）
-2. importance: 重要性评分（0到1之间的浮点数，1最重要）
-3. context: 该概念在文本中的上下文描述（一句话）
+## 什么是知识实体？
+知识实体是你可以为之写出有意义定义的事物。如果你只能用"一个日期"、"一个数字"、
+"一个度量值"来描述它——那它就不是知识实体，不要返回。
 
-请以 JSON 数组格式返回，每个元素包含 concept, importance, context 字段。
-示例：
-[
-  {"concept": "人工智能", "importance": 0.95, "context": "文本讨论了AI在医疗领域的应用"},
-  {"concept": "机器学习", "importance": 0.85, "context": "作为AI的子集被提及"}
-]
+## ✅ 正确示例
+{"entity": "哥白尼", "description": "文艺复兴时期波兰天文学家，提出日心说理论，颠覆了地心说宇宙观", "tags": ["人物", "天文学"], "importance": 0.95}
+{"entity": "日心说", "description": "认为太阳是宇宙中心、行星绕太阳运行的天文学理论", "tags": ["天文学", "科学理论"], "importance": 0.90}
+{"entity": "文艺复兴", "description": "14-17世纪欧洲的思想文化运动，推动了科学和艺术的蓬勃发展", "tags": ["历史", "文化运动"], "importance": 0.85}
+
+## ❌ 错误示例：绝对不能返回
+{"entity": "1473年2月19日", "description": "哥白尼的出生日期"}  — entity 本身是日期值，不是实体！
+{"entity": "1543年5月24日", "description": "哥白尼去世日期"}    — entity 本身是日期值，不是实体！
+{"entity": "1473—1543", "description": "哥白尼的生卒年份"}    — 日期范围，不是实体！
+{"entity": "1543", "description": "一个年份"}                  — 纯数字，不是实体！
+{"entity": "100公里", "description": "一个距离"}               — 度量值，不是实体！
+{"entity": "v2.0", "description": "版本号"}                   — 编号，不是实体！
+
+## 要求
+1. entity: 知识实体名称（2-20字，名词性，不能是日期/数字/度量）
+2. description: 一句话定义（至少8个汉字，不能是"一个XX"的空洞描述）
+3. tags: 1-3个分类标签（如"人物""科学""历史"等）
+4. importance: 0.0~1.0 重要性评分
+5. ⚠️ **核心原则：写不出有意义的定义 → 就不要返回**
+
+以纯 JSON 数组返回：
+[{"entity": "...", "description": "...", "tags": ["标签1"], "importance": 0.8}, ...]
 
 待分析文本：
-${text}`
+${text.slice(0, 4000)}`
 
   const response = await callDeepSeekAPI(
     apiKey,
@@ -118,27 +134,58 @@ ${text}`
 
   const rawArray = parseJSONArray(response)
 
+  // 后置校验：过滤描述空洞的伪实体
+  const TRIVIAL_DESC_PATTERNS = [
+    /^一个(日期|时间|数字|数量|年份|世纪|度量|单位|版本|编号|季度|月份|距离|重量|长度|温度|速度|数值)$/,
+    /^(同上|见上|类似)$/,
+    /^.{1,4}$/,  // 不足5字符
+    /^(a|an|the|is|was|it)\b/i,
+  ]
+
   // 统计每个概念在原文中出现的频率
   const conceptCounts = new Map<string, number>()
   for (const item of rawArray) {
     const raw = item as Record<string, unknown>
-    const concept = String(raw.concept ?? '').trim()
-    if (!concept) continue
-    // 统计出现次数
-    const regex = new RegExp(concept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    const entity = String(raw.entity ?? raw.concept ?? '').trim()
+    if (!entity) continue
+    const regex = new RegExp(entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
     const matches = text.match(regex)
-    const count = matches ? matches.length : 0
-    conceptCounts.set(concept, count)
+    conceptCounts.set(entity, matches ? matches.length : 0)
   }
 
-  const concepts: DistillConcept[] = rawArray.map((item) => {
+  const concepts: DistillConcept[] = []
+  for (const item of rawArray) {
     const raw = item as Record<string, unknown>
-    const concept = String(raw.concept ?? '').trim()
+    // 兼容新旧两种 LLM 输出格式
+    const concept = String(raw.entity ?? raw.concept ?? '').trim()
+    if (!concept || concept.length < 2) continue
+
+    const description = String(raw.description ?? raw.context ?? '').trim()
+
+    // 🔍 "describe or discard" — 描述空洞的直接丢弃
+    const isTrivial = TRIVIAL_DESC_PATTERNS.some(p => p.test(description))
+    if (isTrivial) {
+      console.log(`[distiller] 🗑 丢弃伪实体 "${concept}"：描述空洞 — "${description}"`)
+      continue
+    }
+    // 描述不能只是 entity 本身
+    if (description === concept || description.replace(/\s/g, '') === concept) {
+      console.log(`[distiller] 🗑 丢弃伪实体 "${concept}"：描述等于实体名`)
+      continue
+    }
+
     const importance = typeof raw.importance === 'number' ? raw.importance : 0.5
-    const context = String(raw.context ?? '').trim()
+    const tags = Array.isArray(raw.tags) ? (raw.tags as string[]).join('、') : ''
+
+    // context = description + tags，向后兼容
+    const context = tags ? `${description} [${tags}]` : description
     const frequency = conceptCounts.get(concept) ?? 0
-    return { concept, importance, context, frequency }
-  }).filter((c) => c.concept.length > 0)
+    concepts.push({ concept, importance, context, frequency })
+  }
+
+  console.log(
+    `[distiller] 提取 ${concepts.length} 个有效实体（丢弃 ${rawArray.length - concepts.length} 个伪实体）`
+  )
 
   return concepts.slice(0, maxConcepts)
 }

@@ -95,28 +95,55 @@ function isPseudoConcept(conceptStr: string): { isPseudo: boolean; reason: strin
   if (!s) return { isPseudo: true, reason: '空字符串' }
   if (s.length < 2) return { isPseudo: true, reason: '过短' }
 
-  // 日期/时间
+  // ═══════════════════════════════════════
+  // 日期 / 时间（最常出错，放最前面）
+  // ═══════════════════════════════════════
+  // 1543年5月24日 / 1473年2月19日
   if (/^\d{4}年\d{1,2}月\d{1,2}日?$/i.test(s)) return { isPseudo: true, reason: '日期' }
+  // 1543年5月 / 2024年12月
   if (/^\d{4}年\d{1,2}月$/i.test(s)) return { isPseudo: true, reason: '年月' }
+  // 1543年 / 2024年
   if (/^\d{4}年$/i.test(s)) return { isPseudo: true, reason: '年份' }
+  // 公元前221年 / 公元2024年
   if (/^(公元前|公元)\d+年/.test(s)) return { isPseudo: true, reason: '历史年份' }
+  // 19世纪 / 20世纪50年代
   if (/^\d{1,2}世纪(\d{1,2})?年代?$/.test(s)) return { isPseudo: true, reason: '世纪' }
+  // 春季 / 夏季
   if (/^[春夏秋冬]季$/.test(s)) return { isPseudo: true, reason: '季节' }
+  // 星期一 / 周三
   if (/^(周|星期)[一二三四五六日天]$/.test(s)) return { isPseudo: true, reason: '星期' }
+  // 2024-05-24
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return { isPseudo: true, reason: 'ISO日期' }
+  // 14:30 / 14:30:00
   if (/^\d{2}:\d{2}(:\d{2})?$/.test(s)) return { isPseudo: true, reason: '时间' }
+  // 5月24日 / 24日（无年份）
+  if (/^\d{1,2}[月日号]\d{1,2}[日号]?$/.test(s)) return { isPseudo: true, reason: '月日' }
+  // 生卒日期范围："1473年2月19日-1543年5月24日" 或 "1473—1543"
+  if (/^\d{4}年?\d*[-–—～~]\d{4}年?\d*/.test(s) && /\d{4}/.test(s)) return { isPseudo: true, reason: '日期范围/生卒' }
+  // 纯四位数字且上下文像年份（如孤立出现的 "1543"、"1473"）
+  if (/^\d{4}$/.test(s) && parseInt(s) >= 1000 && parseInt(s) <= 2100) return { isPseudo: true, reason: '疑似年份' }
 
-  // 纯数字/数量
+  // ═══════════════════════════════════════
+  // 纯数字 / 数量表达式
+  // ═══════════════════════════════════════
   if (/^[\d\s.,，。、%％‰+\-×÷=<>≥≤π∞]+$/.test(s)) return { isPseudo: true, reason: '纯数字' }
+  // 2500万 / 1.4亿 / 100条
+  if (/^[\d.]+(?:万|亿|k|K|M|G|T)?(?:个|条|人|次|项|多)?$/.test(s)) return { isPseudo: true, reason: '数量' }
+  // v2.0 / 3.14（排除大写开头的化学符号等）
   if (/^v?\d+(\.\d+)*([a-zA-Z]*)$/.test(s) && !/^[A-Z]/.test(s)) return { isPseudo: true, reason: '版本号' }
+  // 第3版 / 第二章 / 第1卷
   if (/^第?[一二三四五六七八九十百千\d]+[章节卷册页版]$/.test(s)) return { isPseudo: true, reason: '序号' }
 
+  // ═══════════════════════════════════════
   // 度量值
+  // ═══════════════════════════════════════
   if (/^[\d.]+(?:km|m|cm|mm|kg|g|mg|℃|℉|%|公里|米|厘米|毫米|千克|克|毫升|升|公顷|亩|秒分小时天周年)$/i.test(s)) {
     return { isPseudo: true, reason: '度量值' }
   }
 
+  // ═══════════════════════════════════════
   // URL / 邮箱 / 电话
+  // ═══════════════════════════════════════
   if (/^(https?:\/\/|www\.|ftp:\/\/)/.test(s)) return { isPseudo: true, reason: 'URL' }
   if (/@/.test(s) && /\.\w+$/.test(s.split('@')[1])) return { isPseudo: true, reason: '邮箱' }
   if (/^[\d\-+\s()（）]{7,15}$/.test(s)) return { isPseudo: true, reason: '电话' }
@@ -265,7 +292,23 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
               setGraphFromAPI(true)
               console.log(`[DistillPanel] 图谱已加载: ${vertices.length} 顶点, ${edges.length} 边`)
             } else {
-              console.log('[DistillPanel] 图谱数据为空（triples=0 或 success=false），graphData 保持 null')
+              // 三元组为空，但仍需构建最小图谱（仅顶点，无边），使知识列表点击可用
+              const conceptItems = items.filter(i => i.type === 'concept')
+              const conceptNames = conceptItems.map(i => i.label).filter(Boolean)
+              if (conceptNames.length > 0) {
+                const vertices = conceptNames.map((name, i) => ({
+                  id: i,
+                  label: name,
+                  delta: Math.random() * 0.3 + 0.05,
+                  info_existence: 0.5,
+                  corpusName: null as string | undefined
+                }))
+                setGraphData({ vertices, edges: [] })
+                setGraphFromAPI(true)
+                console.log(`[DistillPanel] 无三元组，但构建了最小图谱: ${vertices.length} 顶点`)
+              } else {
+                console.log('[DistillPanel] 图谱数据为空（triples=0 且无知识条目），graphData 保持 null')
+              }
             }
           }
         } catch (graphErr) {
@@ -394,8 +437,17 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
     if (phase === 'done' && !knowledgeSavedRef.current && (concepts.length > 0 || relations.length > 0)) {
       knowledgeSavedRef.current = true
       const domain = currentDomain || '蒸馏'
+      // 🔍 过滤伪概念（日期/数字/度量值等非实体）— 入库前必须过滤！
+      const rawConcepts = concepts
+      const filteredConcepts = concepts.filter(c => !isPseudoConcept(c.concept).isPseudo)
+      const pseudoCount = rawConcepts.length - filteredConcepts.length
+      if (pseudoCount > 0) {
+        const rejected = rawConcepts.filter(c => isPseudoConcept(c.concept).isPseudo).map(c => ({ name: c.concept, reason: isPseudoConcept(c.concept).reason }))
+        console.log(`[DistillPanel] 🗑 过滤 ${pseudoCount} 个伪概念:`, rejected)
+      }
+
       const items: Omit<KnowledgeItem, 'id' | 'createdAt'>[] = [
-        ...concepts.map(c => ({
+        ...filteredConcepts.map(c => ({
           type: 'concept' as const,
           label: c.concept,
           extra: `𝕀=${(c.info_existence ?? 0).toFixed(3)}`,
@@ -408,38 +460,58 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           domain
         }))
       ]
-      const updated = saveKnowledgeItems(items)
-      setKnowledgeItems(updated)
 
-      // 保存语料条目
+      // 【同步】用蒸馏结果（已过滤伪概念）立即构建 graphData，使列表点击立即可用
+      if (filteredConcepts.length > 0 || relations.length > 0) {
+        const conceptNameToId = new Map<string, number>()
+        filteredConcepts.forEach((c, i) => conceptNameToId.set(c.concept, i))
+        const vertices = filteredConcepts.map((c, i) => ({
+          id: i,
+          label: c.concept,
+          delta: Math.random() * 0.3 + 0.05,
+          info_existence: c.info_existence ?? 0.5,
+          corpusName: undefined as string | undefined
+        }))
+        const edges = relations
+          .filter(r => conceptNameToId.has(r.src) && conceptNameToId.has(r.dst))
+          .map(r => ({
+            src: conceptNameToId.get(r.src)!,
+            dst: conceptNameToId.get(r.dst)!,
+            weight: r.strength ?? 0.5,
+            associator_flag: r.type ?? 0
+          }))
+        setGraphData({ vertices, edges })
+        console.log(`[DistillPanel] 蒸馏结果已同步构建 graphData: ${vertices.length} 顶点, ${edges.length} 边`)
+      }
+
+      // 【异步】保存语料条目（IFE 包裹）
       const corpusEntry = {
         text: inputText.slice(0, 5000),
         domain,
         conceptsCount: concepts.length,
         relationsCount: relations.length
       }
-      const updatedCorpus = saveCorpusEntry(corpusEntry)
-      setCorpusEntries(updatedCorpus)
+      ;(async () => {
+        const updated = await saveKnowledgeItems(items)
+        setKnowledgeItems(updated)
+        const updatedCorpus = await saveCorpusEntry(corpusEntry)
+        setCorpusEntries(updatedCorpus)
 
-      // 执行冲突检测，默认全部自动忽略
-      const detected = detectConflicts(
-        [updatedCorpus.find(e => e.text === corpusEntry.text) ?? updatedCorpus[0]],
-        updatedCorpus
-      )
-      // 自动将所有冲突标记为 "忽略"
-      const autoDecisions: Record<string, string> = {}
-      for (const c of detected) {
-        saveConflictDecision({
-          conflictId: c.id,
-          conceptName: c.conceptName,
-          domain: c.domain,
-          decision: 'ignore',
-          resolvedAt: Date.now(),
-        })
-        autoDecisions[c.id] = 'ignore'
-      }
-      setConflicts(detected)
-      setConflictDecisions(autoDecisions)
+        // 执行冲突检测，缺省全部预置为"忽略"，由用户逐一确认
+        const detected = detectConflicts(
+          [updatedCorpus.find(e => e.text === corpusEntry.text) ?? updatedCorpus[0]],
+          updatedCorpus
+        )
+        if (detected.length > 0) {
+          const defaults: Record<string, string> = {}
+          for (const c of detected) {
+            defaults[c.id] = 'ignore'
+          }
+          setConflictDecisions(defaults)
+          setConflictsExpanded(true) // 有冲突时默认展开
+        }
+        setConflicts(detected)
+      })()
     }
   }, [phase, concepts, relations, currentDomain, inputText])
 
@@ -919,32 +991,21 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           </div>
         )}
 
-        {/* 添加到知识库（蒸馏完成时显示） */}
+        {/* 蒸馏完成状态 — 已自动入库（知识+语料+冲突检测均自动完成） */}
         {phase === 'done' && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => {
-                if (bridgeState.loaded) {
-                  // 已有图谱 → 触发合并流程
-                  handleMergePreview()
-                } else {
-                  // 无图谱 → 直接加载
-                  handleLoadFromDistill()
-                }
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-600/30"
-            >
-              📥 添加到知识库
-            </button>
+            <span className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-emerald-600/10 text-emerald-300 border border-emerald-600/20">
+              ✅ 已自动入库
+            </span>
             <span className="text-xs text-textSecondary">
-              {bridgeState.loaded
-                ? '将先检测重叠/冲突，确认后合并到当前知识库'
-                : '将蒸馏结果直接加载到知识库'}
+              {concepts.length} 个概念 · {relations.length} 条关系
+              {conflicts.length > 0 && ` · ⚠️ ${conflicts.length} 项重叠待确认（缺省忽略）`}
+              {conflicts.length === 0 && ' · 无领域重叠'}
             </span>
           </div>
         )}
 
-        {/* 知识冲突检测 UI — 自动忽略，可展开复查 */}
+        {/* 知识冲突检测 UI — 缺省忽略，需用户逐一确认 */}
         {conflicts.length > 0 && (
           <div className="mt-6 rounded-xl border border-amber-600/20 bg-amber-900/5 overflow-hidden">
             {/* 折叠条 */}
@@ -955,10 +1016,10 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
               <div className="flex items-center gap-2">
                 <span className="text-sm">⚠️</span>
                 <span className="text-xs text-amber-300/80">
-                  检测到 <span className="font-semibold">{conflicts.length}</span> 项知识重叠，已自动忽略
+                  检测到 <span className="font-semibold">{conflicts.length}</span> 项知识重叠，缺省忽略
                 </span>
                 <span className="text-[10px] text-amber-400/40">
-                  （{conflictsExpanded ? '点击收起' : '点击展开'}复查）
+                  （{conflictsExpanded ? '点击收起' : '点击展开'}逐条确认）
                 </span>
               </div>
               <span className="text-amber-400/50 text-xs transition-transform duration-200"
@@ -971,7 +1032,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
             {conflictsExpanded && (
               <div className="px-4 pb-4 border-t border-amber-600/15">
                 <p className="text-[11px] text-amber-400/50 mt-3 mb-3">
-                  EML 容纳冲突，冲突不会自动处理。如需调整，可在下方逐条修改决策。
+                  以下概念在不同语料中有不同定义，请逐条确认处理方式（缺省已选"忽略"）。
                 </p>
                 {conflicts.map(c => (
                   <div key={c.id} className="mb-3 p-3 rounded-lg border border-amber-600/20 bg-black/20">
@@ -1015,6 +1076,17 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                     </div>
                   </div>
                 ))}
+                {/* 全部确认按钮 */}
+                <div className="pt-2 pb-1 text-center">
+                  <button
+                    onClick={() => {
+                      setConflictsExpanded(false)
+                    }}
+                    className="px-5 py-1.5 rounded-md text-xs font-medium transition-colors bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-600/30"
+                  >
+                    ✅ 确认全部（缺省忽略）
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1029,17 +1101,14 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           </div>
         )}
 
-        {/* 合并操作（蒸馏完成且已加载图谱时显示） */}
+        {/* 已加载图谱信息（蒸馏完成时显示） */}
         {phase === 'done' && bridgeState.loaded && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleMergePreview}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-600/30"
-            >
-              🔄 检测重叠/冲突
-            </button>
+            <span className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-blue-600/10 text-blue-300 border border-blue-600/20">
+              📊 已检测重叠
+            </span>
             <span className="text-xs text-textSecondary">
-              当前已加载 {bridgeState.fileName}（<span title="概念节点数">🔵节点={bridgeState.vertexCount}</span>&nbsp;<span title="关系边数">🔗边={bridgeState.edgeCount}</span>&nbsp;<span title="知识条数（概念+关系）">K={bridgeState.vertexCount + bridgeState.edgeCount}</span>），将检测新蒸馏结果与它的重叠与冲突
+              当前已加载 {bridgeState.fileName}（🔵节点={bridgeState.vertexCount} 🔗边={bridgeState.edgeCount} K={bridgeState.vertexCount + bridgeState.edgeCount}）
             </span>
           </div>
         )}
@@ -1143,8 +1212,8 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                   <div
                     key={`kc-${item.id}`}
                     onClick={() => {
-                      if (!graphData) return
-                      const matchedVertex = graphData.vertices.find(v => v.label === item.label)
+                      // 尝试在 graphData 中找到匹配的顶点 ID
+                      const matchedVertex = graphData?.vertices.find(v => v.label === item.label)
                       if (matchedVertex) {
                         setSelectedKnowledgeId(matchedVertex.id)
                         setSelectedCorpusName(null)
@@ -1208,9 +1277,8 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                     <div
                       key={`dc-${idx}`}
                       onClick={() => {
-                        if (!graphData) return
                         // 尝试在 graphData 中找到匹配的顶点 ID
-                        const matchedV = graphData.vertices.find(v => v.label === c.concept)
+                        const matchedV = graphData?.vertices.find(v => v.label === c.concept)
                         if (matchedV) {
                           setSelectedKnowledgeId(matchedV.id)
                           setSelectedCorpusName(null)
@@ -1265,11 +1333,10 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                     key={`kr-${item.id}`}
                     onClick={() => {
                       // 关系的 label 格式是 "源→目标"，尝试解析并找到 src 节点 ID
-                      if (!graphData) return
                       const arrowIdx = item.label.indexOf(' → ')
                       if (arrowIdx > 0) {
                         const srcLabel = item.label.slice(0, arrowIdx)
-                        const matchedSrc = graphData.vertices.find(v => v.label === srcLabel || v.label.startsWith(srcLabel))
+                        const matchedSrc = graphData?.vertices.find(v => v.label === srcLabel || v.label.startsWith(srcLabel))
                         if (matchedSrc) {
                           setSelectedKnowledgeId(matchedSrc.id)
                           setSelectedCorpusName(null)
@@ -1330,8 +1397,8 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                   <div
                     key={`dr-${idx}`}
                     onClick={() => {
-                      if (!graphData) return
-                      const matchedSrc = graphData.vertices.find(v => v.label === r.src)
+                      // 尝试在 graphData 中找到匹配的顶点 ID
+                      const matchedSrc = graphData?.vertices.find(v => v.label === r.src)
                       if (matchedSrc) {
                         setSelectedKnowledgeId(matchedSrc.id)
                         setSelectedCorpusName(null)
@@ -1418,9 +1485,9 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                       </span>
                       <span className="text-[11px] text-textSecondary/40 ml-auto">{timeStr}</span>
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (confirm(`确认删除语料「${preview.slice(0, 30)}…」？`)) {
-                            const updated = deleteCorpusEntry(entry.id)
+                            const updated = await deleteCorpusEntry(entry.id)
                             setCorpusEntries(updated)
                           }
                         }}
