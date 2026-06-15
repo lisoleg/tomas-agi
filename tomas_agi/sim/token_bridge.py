@@ -35,6 +35,14 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional, Any
 from collections import deque
 
+# TOMAS-MemOS 融合层集成
+try:
+    from .memos_integration import enable_memos_for_engine, get_memos_stats
+    _HAS_MEMOS = True
+except ImportError:
+    _HAS_MEMOS = False
+    _HAS_MEMOS_REASON = "memos_integration 模块不可用"
+
 # ============================================================
 # 第1部分：EML 文件加载器
 # ============================================================
@@ -558,12 +566,29 @@ class InferenceEngine:
     # φ-一致性阈值：LLM 输出低于此值视为幻觉
     PHI_CONSISTENCY_THRESHOLD = 0.35
 
-    def __init__(self, bridge: TokenBridge, creative_engine=None, phi_gate=None):
+    def __init__(self, bridge: TokenBridge, creative_engine=None, phi_gate=None,
+                 dimred_enabled: bool = False, dimred_result=None,
+                 dead_zero_enabled: bool = True, theta_dead: float = 0.15,
+                 mus_enabled: bool = True, k_snap_enabled: bool = True):
         self.bridge = bridge
         self.creative_engine = creative_engine  # 作家
         self.phi_gate = phi_gate                # 监管者
         self.use_neural = False
         self.neural_model = None
+        # 数学降维
+        self.dimred_enabled = dimred_enabled
+        self.dimred_result = dimred_result      # DimredResult or None
+        # TOMAS Router（多模型路由）
+        self.router = None
+        self._use_router = False
+        self._task_type = "reason"              # 默认任务类型
+        # 死零/MUS/κ-Snap 门控（TOMAS 核心 IP）
+        self.dead_zero_enabled = dead_zero_enabled
+        self.theta_dead = theta_dead
+        self.mus_enabled = mus_enabled
+        self.k_snap_enabled = k_snap_enabled
+        self._dead_zero_mus_gate = None
+        self._init_dead_zero_mus_gate()
 
     def set_neural_model(self, model, use_neural: bool = True):
         """设置神经解码器模型（启用/禁用神经生成）"""
@@ -577,6 +602,183 @@ class InferenceEngine:
     def set_phi_gate(self, phi_gate):
         """设置 φ 监管器"""
         self.phi_gate = phi_gate
+
+    def set_router(self, router):
+        """设置 TOMAS 多模型路由器（替代单一 creative_engine）
+
+        当 Router 激活时，CreativeEngine 被 Router 替代：
+        - Router 支持按 task_type 分发到不同 LLM 后端
+        - Router 内置 EML 执行上下文注入（κ, θ_dead, MUS Tags）
+        - 保留 creative_engine 用于向后兼容
+        """
+        self.router = router
+        self._use_router = True
+
+    def _init_dead_zero_mus_gate(self):
+        """初始化死零/MUS/κ-Snap 统一门控器
+
+        延迟导入以避免循环依赖。
+        若 dead_zero_mus 模块不可用，禁用门控并警告。
+        """
+        if not self.dead_zero_enabled and not self.mus_enabled and not self.k_snap_enabled:
+            self._dead_zero_mus_gate = None
+            return
+
+        try:
+            from .dead_zero_mus import DeadZeroMUSGate
+            self._dead_zero_mus_gate = DeadZeroMUSGate(
+                theta_dead=self.theta_dead,
+                mus_tags=['Asym≠0 double-exist'],
+                tie_threshold=0.01,
+                enable_audit=True,
+            )
+            if self.dead_zero_enabled:
+                print(f"  ✅ 死零校验已启用（θ_dead={self.theta_dead:.2f}）")
+            if self.mus_enabled:
+                print(f"  ✅ MUS 仲裁已启用")
+            if self.k_snap_enabled:
+                print(f"  ✅ κ-Snap 决策已启用")
+        except ImportError as e:
+            print(f"  ⚠️ 死零/MUS 门控初始化失败：{e}")
+            self._dead_zero_mus_gate = None
+
+    def _apply_dead_zero_mus_gate(self, query: str, matched_edges: List[Dict]) -> Dict:
+        """应用死零/MUS/κ-Snap 门控检查
+
+        Args:
+            query: 用户查询
+            matched_edges: 匹配到的 EML 边
+
+        Returns:
+            {
+                'proceed': bool,          # 是否继续生成响应
+                'reject_reason': str,     # 若 reject，原因
+                'mus_active': bool,       # 是否 MUS 激活
+                'paradox_pairs': list,    # 悖论对
+                'selected_edge': dict,    # 选中的边（若有）
+                'snap_score': float,      # Snap 得分
+                'audit_log': list,        # 审计日志
+            }
+        """
+        if self._dead_zero_mus_gate is None:
+            # 门控未初始化，默认通过
+            return {
+                'proceed': True,
+                'reject_reason': '',
+                'mus_active': False,
+                'paradox_pairs': [],
+                'selected_edge': None,
+                'snap_score': 0.0,
+                'audit_log': [],
+            }
+
+        return self._dead_zero_mus_gate.process(
+            query=query,
+            matched_edges=matched_edges,
+        )
+
+    def _extract_matched_edges(self, query_result: Dict) -> List[Dict]:
+        """从查询结果中提取匹配到的边（用于死零/MUS 检查）
+
+        简化实现：将 matched_concepts 转换为边格式。
+        若子图中有边，也一并加入。
+
+        Returns:
+            List[Dict]: [{'eid', 'nodes', 'i_val', 'concept'}, ...]
+        """
+        edges = []
+
+        # 从 matched_concepts 构建边
+        for m in query_result.get('matched_concepts', []):
+            edges.append({
+                'eid': f"e_{m.get('concept', 'unknown')}",
+                'nodes': [m.get('concept', '')],
+                'i_val': m.get('similarity', 0.0),  # 使用相似度作为 ℐ 值近似
+                'concept': m.get('concept', ''),
+            })
+
+        # 从子图边补充（若有 ℐ 值信息）
+        subgraph = query_result.get('subgraph', {})
+        for e in subgraph.get('edges', []):
+            # 避免重复
+            eid = f"e_{e.get('src', '')}_{e.get('dst', '')}"
+            if not any(edge['eid'] == eid for edge in edges):
+                edges.append({
+                    'eid': eid,
+                    'nodes': [e.get('src', ''), e.get('dst', '')],
+                    'i_val': e.get('weight', 0.5),  # 使用权重作为 ℐ 值近似
+                    'concept': f"{e.get('src', '')}_{e.get('dst', '')}",
+                })
+
+        return edges
+
+    def apply_dimred(self, eml_path: str, concepts_path: str = None,
+                     kappa: float = 4.0, dead_threshold: float = 0.15,
+                     tau_max: int = 500, verbose: bool = True) -> Dict:
+        """
+        对已加载的 EML 图应用数学降维（EML Slimming Toolkit 四合一）。
+
+        处理流水线:
+          ITC（识别边界层+退火）→ GPCT（分层 STR-F）→ 拟阵（剪枝保基）→ 输出
+
+        定理 7.1（统一主定理）保证：若 EML 源自太一投影且服从 ℐ 守恒，
+        则存在度类划分使 k ≤ 参数，推理落入 FPT 区。
+
+        Args:
+            eml_path: .eml 文件路径
+            concepts_path: .concepts.json 路径
+            kappa: κ 折叠深度
+            dead_threshold: 死零阈值
+            tau_max: ITC 退火最大步数
+            verbose: 调试输出
+
+        Returns:
+            dimred stats dict，包含压缩比、ℐ保留率、FPT判定等
+        """
+        try:
+            from .eml_dimred import load_eml_graph, slim_eml
+
+            vertices, edges, _ = load_eml_graph(eml_path, concepts_path)
+            result = slim_eml(
+                edges=edges, vertices=vertices,
+                kappa=kappa, dead_threshold=dead_threshold,
+                tau_max=tau_max, verbose=verbose,
+            )
+            self.dimred_enabled = True
+            self.dimred_result = result
+
+            return {
+                'enabled': True,
+                'original_edges': result.original_edges,
+                'core_edges': len(result.core_edges),
+                'compression_ratio': result.compression_ratio,
+                'i_retention': result.i_retention,
+                'is_fpt': result.is_fpt,
+                'k_param': result.k_param,
+                'pipeline_time_ms': result.pipeline_time_ms,
+                'predictions': result.predictions,
+            }
+        except ImportError:
+            if verbose:
+                print("[DimRed] eml_dimred 模块未安装，跳过数学降维")
+            return {'enabled': False, 'error': 'eml_dimred not available'}
+
+    def get_dimred_stats(self) -> Dict:
+        """获取数学降维统计信息"""
+        if not self.dimred_enabled or not self.dimred_result:
+            return {'enabled': False}
+        r = self.dimred_result
+        return {
+            'enabled': True,
+            'original_edges': r.original_edges,
+            'core_edges': len(r.core_edges),
+            'compression_ratio': r.compression_ratio,
+            'i_retention': r.i_retention,
+            'is_fpt': r.is_fpt,
+            'k_param': r.k_param,
+            'mus_circuits': r.mus_circuits,
+            'paradox_circuits': r.paradox_circuits,
+        }
 
     def query(self, text: str, top_k: int = 5, subgraph_radius: int = 2, kappa: float = 0.0) -> Dict:
         """
@@ -664,18 +866,23 @@ class InferenceEngine:
                          kappa: float = 0.0) -> Dict:
         """
         智能路由：翻译官（事实）↔ 作家（创造）
+                + 死零/MUS/κ-Snap 门控（TOMAS 核心 IP）
 
         路由逻辑：
           1. 先执行 EML 查询，获取置信度
-          2. 高置信度(≥0.5) → 翻译官（模板/LSTM）
-          3. 低置信度(<0.5) → 作家（DeepSeek LLM + φ-Gate 监管）
+          2. 死零校验：若 ℐ(e) < θ_dead ⇒ [DEAD_ZERO_REJECT]
+          3. MUS 仲裁：若检测到悖论对 ⇒ [MUS_ACTIVE]
+          4. 高置信度(≥0.5) → 翻译官（模板/LSTM）
+          5. 低置信度(<0.5) → 作家（DeepSeek LLM + φ-Gate 监管）
 
         Returns:
             {
                 'text': str,             # 生成的文本
-                'mode': 'translator' | 'creative' | 'creative_gated' | 'fallback',
+                'mode': 'translator' | 'creative' | 'creative_gated' | 'fallback' | 'dead_zero_reject' | 'mus_active',
                 'confidence': float,
                 'gate_result': {...} | None,   # φ-Gate 检查结果
+                'dead_zero_result': {...},      # 死零校验结果
+                'mus_result': {...},           # MUS 仲裁结果
                 'matched_concepts': [...],
             }
         """
@@ -683,19 +890,47 @@ class InferenceEngine:
         result = self.query(text, top_k, kappa=kappa)
         confidence = result['confidence']
 
-        # Step 2: 判断路由
+        # Step 2: 死零/MUS/κ-Snap 门控检查（TOMAS 核心 IP）
+        matched_edges = self._extract_matched_edges(result)
+        gate_result = self._apply_dead_zero_mus_gate(text, matched_edges)
+
+        if not gate_result['proceed']:
+            # 触发死零 ⇒ 拒绝回答
+            return {
+                'text': gate_result['reject_reason'],
+                'mode': 'dead_zero_reject',
+                'confidence': 0.0,
+                'gate_result': None,
+                'dead_zero_result': gate_result,
+                'mus_result': {'mus_active': False},
+                'matched_concepts': result['matched_concepts'],
+            }
+
+        # Step 3: 判断路由
+        has_llm = self.creative_engine is not None or self._use_router
         use_creative = force_creative or (
             not force_translator
             and confidence < self.TRANSLATOR_THRESHOLD
-            and self.creative_engine is not None
+            and has_llm
         )
 
         if not use_creative:
             # ═══════════════ 翻译官路径 ═══════════════
-            return self._translator_respond(text, result, top_k)
+            response = self._translator_respond(text, result, top_k)
+        elif self._use_router and self.router:
+            # ═══════════════ 作家路径（Router 多模型路由） ═══════════════
+            response = self._creative_respond_router(text, result)
         else:
-            # ═══════════════ 作家路径 ═══════════════
-            return self._creative_respond(text, result)
+            # ═══════════════ 作家路径（单一 DeepSeek LLM） ═══════════════
+            response = self._creative_respond(text, result)
+
+        # Step 4: 若 MUS 激活，标记响应
+        if gate_result['mus_active']:
+            response['mode'] = 'mus_active'
+            response['mus_result'] = gate_result
+            response['text'] = f"[MUS_ACTIVE: {gate_result['paradox_pairs']}]\n\n{response['text']}"
+
+        return response
 
     def _translator_respond(self, text: str, result: Dict, top_k: int = 5) -> Dict:
         """翻译官：LSTM/模板事实复述"""
@@ -797,6 +1032,103 @@ class InferenceEngine:
             'confidence': result['confidence'],
             'gate_result': gate_result,
             'matched_concepts': result['matched_concepts'],
+        }
+
+    def _creative_respond_router(self, text: str, result: Dict,
+                                  task_type: str = None) -> Dict:
+        """作家（Router 多模型路由）：TOMAS Router + EML 注入 + φ-Gate 监管
+
+        相比 _creative_respond（仅支持 DeepSeek），此方法通过 TOMASRouter：
+        1. 按 task_type 自动选择最佳 LLM 后端
+        2. 自动注入 EML 执行上下文（κ, θ_dead, MUS Tags）
+        3. 支持模型池热切换（DeepSeek/GLM-5/Kimi/Miro-Med 等）
+
+        Args:
+            text: 用户查询文本
+            result: query() 返回的 EML 匹配结果
+            task_type: 任务类型（reason/code_gen/med_annotate/...），默认使用实例级 _task_type
+
+        Returns:
+            {text, mode, confidence, gate_result, matched_concepts, model_used}
+        """
+        task_type = task_type or self._task_type
+
+        # 构建 EML 上下文（用于注入到系统提示词）
+        eml_ctx = {
+            "kappa": 4.0,
+            "dead_zero_theta": 0.15,
+            "mus_tags": ["Asym!=0 double-exist"],
+        }
+        if self.dimred_result:
+            eml_ctx["kappa"] = self.dimred_result.k_param
+
+        # 提取匹配的概念和边（用于 knowledge grounding）
+        matched_concepts = result.get("matched_concepts", [])
+        subgraph = result.get("subgraph", {})
+        related_edges = subgraph.get("edges", [])
+
+        # 格式化概念为 injector 兼容格式
+        concept_dicts = [
+            {"concept": c.get("concept", c.get("name", "?")), "i_val": c.get("phi_sim", c.get("score", 0))}
+            for c in matched_concepts[:10]
+        ]
+        edge_dicts = [
+            {"nodes": e.get("vertices", e.get("nodes", [])), "i_val": e.get("weight", e.get("i_val", 0)),
+             "type": e.get("relation", e.get("type", "relates"))}
+            for e in (related_edges if isinstance(related_edges, list) else [])[:10]
+        ]
+
+        # 调用 Router
+        try:
+            llm_output = self.router.route(
+                task_type=task_type,
+                prompt=text,
+                eml_ctx=eml_ctx,
+                sys_prompt=None,  # Router 内置 EML sysprompt
+                concepts=concept_dicts,
+                edges=edge_dicts,
+            )
+            model_used = self.router.routing_table.get(task_type, "deepseek")
+        except Exception as e:
+            print(f"⚠️ Router 调用失败（回退到翻译官）：{e}")
+            resp = self._template_response(text, 5)
+            return {
+                'text': f"⚠️ Router 调用失败：{e}\n\n回退到翻译官：\n{resp}",
+                'mode': 'fallback',
+                'confidence': result['confidence'],
+                'gate_result': {'error': str(e)},
+                'matched_concepts': matched_concepts,
+                'model_used': None,
+            }
+
+        # φ-Gate 监管（与 _creative_respond 一致）
+        gate_result = None
+        if self.phi_gate is not None:
+            gate_result = self.phi_gate.check(llm_output, result)
+
+        if gate_result and gate_result.get('hallucinated'):
+            warning = (
+                f"⚠️ φ-Gate 检测到潜在幻觉 "
+                f"(一致性 {gate_result.get('consistency', 0):.1%} < "
+                f"{self.PHI_CONSISTENCY_THRESHOLD:.0%})\n\n"
+            )
+            translator_resp = self._template_response(text, 5)
+            return {
+                'text': f"{warning}【{model_used} 生成（已标记）】\n{llm_output}\n\n---\n【翻译官验证】\n{translator_resp}",
+                'mode': 'creative_gated',
+                'confidence': result['confidence'],
+                'gate_result': gate_result,
+                'matched_concepts': matched_concepts,
+                'model_used': model_used,
+            }
+
+        return {
+            'text': llm_output,
+            'mode': 'creative',
+            'confidence': result['confidence'],
+            'gate_result': gate_result,
+            'matched_concepts': matched_concepts,
+            'model_used': model_used,
         }
 
     def _template_response(self, text: str, top_k: int = 5) -> str:
@@ -1101,6 +1433,11 @@ def main():
     parser.add_argument("--max-len", type=int, default=50, help="最大生成长度")
     # 作家/LLM 相关
     parser.add_argument("--llm", action="store_true", help="启用 DeepSeek LLM 作家（创造性生成）")
+    parser.add_argument("--router", action="store_true", help="启用 TOMAS 多模型 Router（替代 --llm 单一模型，支持 12+ LLM 按任务类型路由）")
+    parser.add_argument("--router-config", type=str, default=None, help="Router 模型池配置文件路径（默认 model_pool.json）")
+    parser.add_argument("--task-type", type=str, default="reason", 
+                        choices=["reason", "long_extract", "code_gen", "med_annotate", "edu", "academic", "rag", "multilingual", "fallback"],
+                        help="Router 任务类型（默认 reason）")
     parser.add_argument("--api-key", type=str, help="DeepSeek API Key")
     parser.add_argument("--api-base", type=str, default="https://api.deepseek.com/v1", help="API 地址")
     parser.add_argument("--llm-model", type=str, default="deepseek-chat", help="LLM 模型名")
@@ -1113,6 +1450,24 @@ def main():
     parser.add_argument("--force-creative", action="store_true", help="强制使用作家（不走翻译官）")
     parser.add_argument("--threshold", type=float, default=0.5, help="翻译官/作家族由阈值")
     parser.add_argument("--kappa", type=float, default=0.0, help="κ-Gate 语义剪枝阈值 (0=不剪枝, >0=仅保留 I(X)≥κ 的顶点/边)")
+    # 数学降维
+    parser.add_argument("--dimred", action="store_true", help="启用 EML 数学降维（四合一瘦身工具箱）")
+    parser.add_argument("--dimred-kappa", type=float, default=4.0, help="数学降维 κ 折叠深度 (默认: 4)")
+    parser.add_argument("--dimred-dead", type=float, default=0.15, help="数学降维死零阈值 (默认: 0.15)")
+    parser.add_argument("--dimred-tau", type=int, default=500, help="ITC 退火最大步数 (默认: 500)")
+    # 死零/MUS/κ-Snap 门控（TOMAS 核心 IP）
+    parser.add_argument("--disable-dead-zero", action="store_true", help="禁用死零校验（调试用）")
+    parser.add_argument("--theta-dead", type=float, default=0.15, help="死零阈值 θ_dead (默认: 0.15)")
+    parser.add_argument("--disable-mus", action="store_true", help="禁用 MUS 仲裁（调试用）")
+    parser.add_argument("--disable-k-snap", action="store_true", help="禁用 κ-Snap 决策（调试用）")
+    # TOMAS-MemOS 融合层（记忆工程升维）
+    parser.add_argument("--enable-memos", action="store_true", help="启用 TOMAS-MemOS 融合层（死零校验 + MUS 双存 + ψ-锚）")
+    parser.add_argument("--memos-store", type=str, default=None, help="MemOS 记忆存储路径（默认 tomas_agi/data/memory_store.json）")
+    parser.add_argument("--memos-theta-write", type=float, default=0.3, help="MemOS 写入阈值 θ_write (默认: 0.3)")
+    parser.add_argument("--memos-psi", action="store_true", default=True, help="启用 ψ-锚（Self-Snapshot，默认启用）")
+    parser.add_argument("--no-memos-psi", dest="memos_psi", action="store_false", help="禁用 ψ-锚")
+    parser.add_argument("--memos-kappa-gate", action="store_true", default=True, help="启用 κ-Gate 激活（默认启用）")
+    parser.add_argument("--no-memos-kappa-gate", dest="memos_kappa_gate", action="store_false", help="禁用 κ-Gate 激活")
     args = parser.parse_args()
 
     if not args.load:
@@ -1127,6 +1482,13 @@ def main():
         print("    python token_bridge.py --load data/distilled.eml --query 'AI的未来' --llm --api-key sk-xxx")
         print("  自动路由（翻译官↔作家）：")
         print("    python token_bridge.py --load data/distilled.eml --query 'xxx' --llm --api-key sk-xxx")
+        print("  TOMAS Router（多模型智能路由，推荐）：")
+        print("    python token_bridge.py --load data/distilled.eml --query 'xxx' --router --task-type reason")
+        print("    python token_bridge.py --load data/distilled.eml --query '心肾不交辨证' --router --task-type med_annotate")
+        print("  数学降维 + Router（终极模式）：")
+        print("    python token_bridge.py --load data/distilled.eml --concepts data/concepts.json --dimred --query 'xxx' --router --task-type reason")
+        print("  数学降维（四合一瘦身工具箱）：")
+        print("    python token_bridge.py --load data/distilled.eml --concepts data/concepts.json --dimred --query 'xxx' --llm --api-key sk-xxx")
         print("  训练：")
         print("    python token_bridge.py --load data/distilled.eml --train --concepts data/concepts.json")
         print("    python token_bridge.py --load data/distilled.eml --train-decoder --concepts data/concepts.json")
@@ -1141,6 +1503,27 @@ def main():
     # 加载概念名称
     if args.concepts:
         bridge.load_concept_names_from_json(args.concepts)
+
+    # 数学降维（四合一瘦身工具箱）
+    dimred_result = None
+    if args.dimred:
+        print("\n🧮 启用 EML 数学降维（四合一瘦身工具箱）...")
+        from .eml_dimred import slim_eml, load_eml_graph
+        try:
+            verts, edgs, _ = load_eml_graph(args.load, args.concepts)
+            dimred_result = slim_eml(
+                edges=edgs, vertices=verts,
+                kappa=args.dimred_kappa,
+                dead_threshold=args.dimred_dead,
+                tau_max=args.dimred_tau,
+                verbose=True,
+            )
+            print(f"  数学降维完成: "
+                  f"k={dimred_result.k_param}, "
+                  f"FPT={'✓' if dimred_result.is_fpt else '✗'}, "
+                  f"压缩 {dimred_result.compression_ratio:.1%}")
+        except Exception as e:
+            print(f"  ⚠️ 数学降维失败: {e}")
 
     # 训练 Token Bridge
     if args.train:
@@ -1178,9 +1561,29 @@ def main():
 
     # 查询 / 生成
     if args.query:
-        # 构建引擎
-        engine = InferenceEngine(bridge)
+        # 构建引擎（含死零/MUS/κ-Snap 门控）
+        engine = InferenceEngine(
+            bridge,
+            dead_zero_enabled=not args.disable_dead_zero,
+            theta_dead=args.theta_dead,
+            mus_enabled=not args.disable_mus,
+            k_snap_enabled=not args.disable_k_snap,
+        )
         engine.TRANSLATOR_THRESHOLD = args.threshold
+        
+        # 打印门控状态
+        if not args.disable_dead_zero:
+            print(f"  ✅ 死零校验已启用（θ_dead={args.theta_dead:.2f}）")
+        else:
+            print(f"  ⚠️ 死零校验已禁用（调试模式）")
+        if not args.disable_mus:
+            print(f"  ✅ MUS 仲裁已启用")
+        else:
+            print(f"  ⚠️ MUS 仲裁已禁用（调试模式）")
+        if not args.disable_k_snap:
+            print(f"  ✅ κ-Snap 决策已启用")
+        else:
+            print(f"  ⚠️ κ-Snap 决策已禁用（调试模式）")
 
         # 神经解码器
         if args.generate or args.model:
@@ -1194,12 +1597,45 @@ def main():
                 except Exception as e:
                     print(f"⚠️ 神经解码器加载失败：{e}")
 
-        # 作家引擎（DeepSeek LLM）
-        if args.llm:
+        # 作家引擎 — 支持两种模式：
+        #   --router: TOMAS 多模型 Router（推荐，支持 12+ LLM 按任务类型路由）
+        #   --llm:    单一 DeepSeek LLM（向后兼容）
+        if args.router:
+            # ═══════════════ TOMAS Router 多模型路由 ═══════════════
+            from router import TOMASRouter
+            from eml_injector import EMLInjector
+
+            router_config = args.router_config
+            if not router_config:
+                # 默认查找同目录下的 model_pool.json
+                default_path = os.path.join(os.path.dirname(__file__), "model_pool.json")
+                if os.path.exists(default_path):
+                    router_config = default_path
+
+            router = TOMASRouter(config_path=router_config)
+            engine.set_router(router)
+            engine._task_type = args.task_type
+
+            # 显示可用模型
+            avail = router.available_models
+            total = len(router.all_models)
+            print(f"\n🌐 TOMAS Router 已就绪 — {len(avail)}/{total} 模型可用")
+            for m in avail[:5]:  # 最多显示 5 个
+                print(f"   ✅ {m['label']} ({m['provider']}) — {m['notes'][:50]}")
+            if total - len(avail) > 0:
+                unavail = [m['label'] for m in router.all_models if not any(
+                    a['name'] == m['name'] for a in avail)]
+                print(f"   ⏳ 待配置 API Key: {', '.join(unavail[:3])}{'...' if len(unavail) > 3 else ''}")
+            print(f"   当前任务类型: {args.task_type}")
+            print(f"   路由策略: 按 task_type 自动分发到最优 LLM 后端")
+
+        elif args.llm:
+            # ═══════════════ 单一 DeepSeek LLM（向后兼容） ═══════════════
             api_key = args.api_key or os.environ.get("DEEPSEEK_API_KEY", "")
             if not api_key:
                 print("⚠️ 未设置 DeepSeek API Key，作家引擎无法启动。")
                 print("  设置方法：--api-key sk-xxx 或 环境变量 DEEPSEEK_API_KEY")
+                print("  提示：可使用 --router 启用 TOMAS 多模型 Router")
             else:
                 creative = CreativeEngine(
                     api_key=api_key,
@@ -1217,12 +1653,23 @@ def main():
                     print(f"🛡️  φ-Gate 监管已启用（阈值 {args.gate_threshold:.0%}）")
                 else:
                     print("⚠️  φ-Gate 监管已禁用")
+            # 注意：如果 --router 也设置了，φ-Gate 会自动配合 Router 使用
 
         # 执行生成
         print(f"\n{'='*60}")
         print(f"查询：{args.query}")
         print(f"路由阈值：{engine.TRANSLATOR_THRESHOLD:.0%}")
         print(f"{'='*60}\n")
+
+        # TOMAS-MemOS 融合层集成
+        if args.enable_memos:
+            if _HAS_MEMOS:
+                try:
+                    enable_memos_for_engine(engine, args)
+                except Exception as e:
+                    print(f"⚠️ MemOS 融合层初始化失败：{e}")
+            else:
+                print(f"⚠️ {_HAS_MEMOS_REASON}，无法启用 MemOS 融合层")
 
         response = engine.generate_response(
             args.query, args.top_k,
@@ -1239,7 +1686,8 @@ def main():
             'fallback': '🔄 回退到翻译官',
         }
         mode_label = mode_icons.get(response['mode'], f"❓ {response['mode']}")
-        print(f"【{mode_label}】  置信度 {response['confidence']:.2%}\n")
+        model_info = f" | 模型: {response.get('model_used', 'N/A')}" if response.get('model_used') else ""
+        print(f"【{mode_label}】{model_info}  置信度 {response['confidence']:.2%}\n")
 
         # 显示 φ-Gate 结果
         if response.get('gate_result'):
