@@ -207,7 +207,7 @@ def compute_i_weight(engine, debug=False):
             print(f"    i_weight >= {threshold:4.1f}: {cnt:>12,} ({cnt/total*100:.1f}%)")
 
 
-def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, compute_i_weight_flag=True):
+def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, compute_i_weight_flag=True, skip_rows=0):
     if not os.path.exists(csv_path):
         print(f"❌ 文件不存在: {csv_path}")
         sys.exit(1)
@@ -226,6 +226,9 @@ def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, 
         start = time.time()
         with open(csv_path, "r", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
+            # 跳过表头
+            if skip_rows == 0:
+                next(reader, None)
             for row in reader:
                 if len(row) < 3:
                     continue
@@ -255,11 +258,14 @@ def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, 
     print(f"  CSV:      {csv_path}")
     print(f"  数据库:   {DB_PATH}")
     print(f"  批次大小: {BATCH_SIZE:,}")
+    if skip_rows:
+        print(f"  跳过行数: {skip_rows:,} (断点续传)")
     if max_rows:
         print(f"  限制行数: {max_rows:,}")
     print()
 
     total_rows = 0
+    skipped_rows = 0
     pseudo_filtered = 0
     inserted = 0
     duplicates = 0
@@ -285,12 +291,25 @@ def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, 
             duplicates += (len(batch) - result.rowcount)
         batch.clear()
 
-    with open(csv_path, "r", encoding="utf-8-sig") as f:
+    with open(csv_path, "r", encoding="utf-8-sig", errors="replace") as f:
         reader = csv.reader(f)
         # 跳过表头行（实体,属性,值）
         header = next(reader, None)
         if header and len(header) >= 3 and header[0].strip() == "实体":
             print(f"  ⏭ 跳过表头行: {header}")
+
+        # 断点续传：跳过已导入的 CSV 行
+        if skip_rows > 0:
+            print(f"  ⏭ 跳过前 {skip_rows:,} 行...")
+            skip_start = time.time()
+            for _ in range(skip_rows):
+                try:
+                    next(reader, None)
+                except (csv.Error, UnicodeDecodeError):
+                    pass  # 继续跳过有问题的行
+            skipped_rows = skip_rows
+            skip_elapsed = time.time() - skip_start
+            print(f"  ⏭ 跳过完成 ({skip_elapsed:.1f}s)")
 
         for row in reader:  # 从第一行数据开始
             if len(row) < 3:
@@ -299,9 +318,12 @@ def import_ownthink(csv_path, max_rows=0, dry_run=False, batch_size=BATCH_SIZE, 
             if max_rows and total_rows > max_rows:
                 break
 
-            entity = row[0].strip()
-            predicate = row[1].strip()
-            value = row[2].strip()
+            try:
+                entity = row[0].strip()
+                predicate = row[1].strip()
+                value = row[2].strip()
+            except (UnicodeDecodeError, csv.Error):
+                continue
 
             if not entity or not predicate:
                 continue
@@ -394,6 +416,8 @@ def main():
                         help=f"批次大小（默认: {BATCH_SIZE}）")
     parser.add_argument("--skip-i-weight", action="store_true",
                         help="跳过 i_weight 后计算（加快导入速度）")
+    parser.add_argument("--skip", "-s", type=int, default=0,
+                        help="跳过 CSV 前 N 行（断点续传，0=不跳过）")
     args = parser.parse_args()
 
     import_ownthink(
@@ -402,6 +426,7 @@ def main():
         dry_run=args.dry_run,
         batch_size=args.batch,
         compute_i_weight_flag=not args.skip_i_weight,
+        skip_rows=args.skip,
     )
 
 
