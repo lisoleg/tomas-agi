@@ -31,7 +31,7 @@ interface NavItem {
   id: AppMode
   label: string
   icon: React.ReactNode
-  section: 'core' | 'monitor' | 'info'
+  section: 'core' | 'monitor' | 'engine' | 'info'
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -42,6 +42,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'audit', label: '审计监控', icon: <IconAuditLog size={17} />, section: 'monitor' },
   { id: 'memory', label: '记忆浏览器', icon: <IconMemory size={17} />, section: 'monitor' },
   { id: 'firewall-router', label: '防火墙·路由', icon: <IconShield size={17} />, section: 'monitor' },
+  { id: 'ido', label: 'IDO 桥接', icon: <IconLayers size={17} />, section: 'engine' },
+  { id: 'fde', label: 'FDE 本体', icon: <IconFlame size={17} />, section: 'engine' },
+  { id: 'dual', label: '双时间维度', icon: <IconRoute size={17} />, section: 'engine' },
+  { id: 'itot', label: 'IT-OT 翻译', icon: <IconGlobe size={17} />, section: 'engine' },
   { id: 'docs', label: '技术文档', icon: <IconFile size={17} />, section: 'info' },
 ]
 
@@ -96,6 +100,7 @@ export function Sidebar(props: SidebarProps) {
 
   const coreItems = NAV_ITEMS.filter(i => i.section === 'core')
   const monitorItems = NAV_ITEMS.filter(i => i.section === 'monitor')
+  const engineItems = NAV_ITEMS.filter(i => i.section === 'engine')
   const infoItems = NAV_ITEMS.filter(i => i.section === 'info')
 
   return (
@@ -148,6 +153,31 @@ export function Sidebar(props: SidebarProps) {
           <div className="px-2 mb-1">
             <p className="px-2 py-1 text-[10px] text-textSecondary/60 uppercase tracking-wider">TOMAS 监控</p>
             {monitorItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => { onSwitchMode(item.id); onCloseMobile() }}
+                className={[
+                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors mb-0.5',
+                  mode === item.id
+                    ? 'bg-sidebarActive text-white'
+                    : 'text-gray-300 hover:bg-sidebarHover hover:text-white'
+                ].join(' ')}
+              >
+                <span className="flex-shrink-0 opacity-80">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className="px-3 py-1">
+            <div className="border-t border-white/5" />
+          </div>
+
+          {/* Engine Section */}
+          <div className="px-2 mb-1">
+            <p className="px-2 py-1 text-[10px] text-textSecondary/60 uppercase tracking-wider">TOMAS 引擎</p>
+            {engineItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => { onSwitchMode(item.id); onCloseMobile() }}

@@ -46,6 +46,10 @@
 - `hyworld_bridge.py` — **HY World 2.0 四阶段管道↔TOMAS EML桥接（2026-06-16）**
 - `sai_tproc.py` — **T-Processor 后审计层（Dead-Zero/MUS/G_ego，2026-06-16）**
 - `spatial_dead_zero.py` — **3D几何物理接地审计（GravityValidator/SpatialMUS/IotaLoss，2026-06-16）**
+- `ido_bridge.py` — **IDO五元素模板桥接（C_UV/M/I/梯度流/IR不动点 + κ²=-1自对偶 + κMM全息记忆，2026-06-16）**
+- `fde_builder.py` — **FDE道法术器本体构建器（ℐ-标定/四阶验证/EchoContext/工业标准接地，2026-06-16）**
+- `dual_timeline.py` — **双时间维度引擎（因果/认知分离 + 认知防火墙 + 奇点消解，2026-06-16）**
+- `itot_bridge.py` — **IT-OT翻译桥（IT↔OT翻译 + 技术债务治理 + 零信任门控，2026-06-16）**
 
 ## 数据文件
 - 语料: `tomas_agi/data/physics.txt`, `chemistry.txt`, `medicine.txt`
@@ -65,7 +69,7 @@
 
 ## 测试
 - 前端: `deepseek-chat/src/test/` — Vitest + RTL，17/17 通过
-- 后端: `tomas_agi/tests/` — pytest，**366 passed + 2 skipped（需要 API Key），0 failed**
+- 后端: `tomas_agi/tests/` — pytest，**557 passed + 2 skipped（需要 API Key），0 failed**
   - `test_token_bridge.py`: 8 passed
   - `test_eml_dimred.py`: 20 passed
   - `test_router.py`: 27 passed
@@ -75,6 +79,8 @@
   - `test_contradiction.py`: 19 passed
   - `test_causet_wsc.py`: 57 passed
   - `test_hyworld_sai.py`: 76 passed
+  - `test_ido.py`: 105 passed
+  - `test_fde_dual_itot.py`: 86 passed
   - DIKWP/AC 测试: 54 passed
 - Python 测试: 系统 Python 3.10 + pytest
 

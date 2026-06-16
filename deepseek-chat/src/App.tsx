@@ -11,6 +11,10 @@ import WorldModelViewer from './components/WorldModelViewer'
 import AuditMonitor from './components/AuditMonitor'
 import MemoryBrowser from './components/MemoryBrowser'
 import LogsAndRouterPanel from './components/LogsAndRouterPanel'
+import IDOPanel from './components/IDOPanel'
+import FDEPanel from './components/FDEPanel'
+import DualTimelinePanel from './components/DualTimelinePanel'
+import ITOTPanel from './components/ITOTPanel'
 import { Sidebar } from './components/Sidebar'
 import { useChat } from './hooks/useChat'
 import { useToast } from './components/Toast'
@@ -125,6 +129,30 @@ export default function App() {
         return (
           <ErrorBoundary>
             <LogsAndRouterPanel />
+          </ErrorBoundary>
+        )
+      case 'ido':
+        return (
+          <ErrorBoundary>
+            <IDOPanel />
+          </ErrorBoundary>
+        )
+      case 'fde':
+        return (
+          <ErrorBoundary>
+            <FDEPanel />
+          </ErrorBoundary>
+        )
+      case 'dual':
+        return (
+          <ErrorBoundary>
+            <DualTimelinePanel />
+          </ErrorBoundary>
+        )
+      case 'itot':
+        return (
+          <ErrorBoundary>
+            <ITOTPanel />
           </ErrorBoundary>
         )
       case 'docs':

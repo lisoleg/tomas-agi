@@ -502,8 +502,345 @@ def health():
     return jsonify({"status": "ok", "db": DB_PATH})
 
 
+# ═══════════════════════════════════════════════════════════════
+# TOMAS 引擎 API — IDO / FDE / DualTimeline / IT-OT
+# ═══════════════════════════════════════════════════════════════
+
+# 懒加载单例
+_tomas_modules = {}
+
+def _get_ido_bridge():
+    if "ido" not in _tomas_modules:
+        try:
+            from tomas_agi.sim.ido_bridge import IDOBridge
+            _tomas_modules["ido"] = IDOBridge()
+        except Exception as e:
+            _tomas_modules["ido"] = None
+    return _tomas_modules["ido"]
+
+def _get_fde_builder():
+    if "fde" not in _tomas_modules:
+        try:
+            from tomas_agi.sim.fde_builder import FDEBuilder
+            _tomas_modules["fde"] = FDEBuilder()
+        except Exception as e:
+            _tomas_modules["fde"] = None
+    return _tomas_modules["fde"]
+
+def _get_dual_timeline():
+    if "dual" not in _tomas_modules:
+        try:
+            from tomas_agi.sim.dual_timeline import ExternalTimeline, InternalTimeline, DualTimelineAligner
+            _tomas_modules["dual"] = {
+                "external": ExternalTimeline(),
+                "internal": InternalTimeline(),
+                "aligner": DualTimelineAligner(),
+            }
+        except Exception as e:
+            _tomas_modules["dual"] = None
+    return _tomas_modules["dual"]
+
+def _get_itot_bridge():
+    if "itot" not in _tomas_modules:
+        try:
+            from tomas_agi.sim.itot_bridge import ITOTTranslator, TechnicalDebtGovernor, ZeroTrustGate, JointKPI
+            import uuid
+            _tomas_modules["itot"] = {
+                "translator": ITOTTranslator(),
+                "debt_gov": TechnicalDebtGovernor(),
+                "zt_gate": ZeroTrustGate(),
+                "kpi": JointKPI(),
+            }
+        except Exception as e:
+            _tomas_modules["itot"] = None
+    return _tomas_modules["itot"]
+
+
+# ── IDO Bridge ─────────────────────────────────────────────
+
+@app.route("/api/ido/evaluate", methods=["POST"])
+def ido_evaluate():
+    try:
+        data = request.json or {}
+        bridge = _get_ido_bridge()
+        if bridge is None:
+            return jsonify({"success": False, "error": "IDO module unavailable"}), 503
+        try:
+            from tomas_agi.sim.ido_bridge import IDOHypothesis
+        except ImportError:
+            from ido_bridge import IDOHypothesis
+        h = IDOHypothesis(
+            problem_name=data.get("problem_name", "unknown"),
+            domain=data.get("domain", "general"),
+            axiom_status={a: data.get("axioms", {}).get(a, False) for a in ["A1", "A2", "A3", "A4"]},
+            i_support=data.get("i_support", 0.5),
+        )
+        result = bridge.evaluate_hypothesis(h)
+        return jsonify({"success": True, "data": {
+            "domain": result.domain,
+            "tier": result.tier.value if hasattr(result.tier, "value") else str(result.tier),
+            "audit": result.audit.value if hasattr(result.audit, "value") else str(result.audit),
+            "i_value": getattr(result, "i_value", 0.0),
+            "evidence": getattr(result, "evidence", []),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/ido/classify", methods=["POST"])
+def ido_classify():
+    try:
+        data = request.json or {}
+        bridge = _get_ido_bridge()
+        if bridge is None:
+            return jsonify({"success": False, "error": "IDO module unavailable"}), 503
+        axiom_status = data.get("axiom_status", {})
+        problem_name = data.get("problem_name", "unknown")
+        tier = bridge.classifier.classify(problem_name, axiom_status)
+        gaps = bridge.classifier.get_gaps(problem_name)
+        return jsonify({"success": True, "data": {
+            "tier": tier.value if hasattr(tier, "value") else str(tier),
+            "gaps": gaps,
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/ido/flow", methods=["POST"])
+def ido_flow():
+    try:
+        data = request.json or {}
+        bridge = _get_ido_bridge()
+        if bridge is None:
+            return jsonify({"success": False, "error": "IDO module unavailable"}), 503
+        flow = bridge.template.run_flow(
+            data.get("problem_name", "default"),
+            max_steps=data.get("max_steps", 80),
+            initial_i=data.get("i_support", 0.5),
+        )
+        return jsonify({"success": True, "data": {
+            "steps": len(flow.get("history", [])),
+            "final_i": flow.get("final_i", 0.0),
+            "converged": flow.get("converged", False),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/ido/stats", methods=["GET"])
+def ido_stats():
+    try:
+        bridge = _get_ido_bridge()
+        if bridge is None:
+            return jsonify({"success": True, "data": {"status": "unavailable"}})
+        return jsonify({"success": True, "data": {
+            "status": "available",
+            "tiers": ["Tier1", "Tier2", "Tier3"],
+            "axioms": ["A1", "A2", "A3", "A4"],
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── FDE Builder ───────────────────────────────────────────
+
+@app.route("/api/fde/build", methods=["POST"])
+def fde_build():
+    try:
+        data = request.json or {}
+        builder = _get_fde_builder()
+        if builder is None:
+            return jsonify({"success": False, "error": "FDE module unavailable"}), 503
+        echo = data.get("echo_context", {"it": "", "ot": "", "et": ""})
+        standard = data.get("standard_ref", "IEC62443")
+        ontology = builder.build(echo, standard)
+        return jsonify({"success": True, "data": {
+            "qi_level": str(getattr(ontology, "qi_level", "unknown")),
+            "sha_level": str(getattr(ontology, "sha_level", "unknown")),
+            "validations": getattr(ontology, "validations", []),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/fde/calibrate", methods=["POST"])
+def fde_calibrate():
+    try:
+        data = request.json or {}
+        builder = _get_fde_builder()
+        if builder is None:
+            return jsonify({"success": False, "error": "FDE module unavailable"}), 503
+        result = builder.calibrator.calibrate_iota(
+            data.get("target_concept", ""),
+            data.get("i_value", 0.5),
+        )
+        return jsonify({"success": True, "data": {"calibrated": result}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/fde/check-asym", methods=["POST"])
+def fde_check_asym():
+    try:
+        data = request.json or {}
+        builder = _get_fde_builder()
+        if builder is None:
+            return jsonify({"success": False, "error": "FDE module unavailable"}), 503
+        result = builder.asym_checker.check_asym(data.get("skill_description", ""))
+        return jsonify({"success": True, "data": {
+            "asym": getattr(result, "asym", 0.0),
+            "mus_flagged": getattr(result, "mus_flagged", False),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/fde/status", methods=["GET"])
+def fde_status():
+    try:
+        builder = _get_fde_builder()
+        if builder is None:
+            return jsonify({"success": True, "data": {"status": "unavailable"}})
+        return jsonify({"success": True, "data": {
+            "status": "available",
+            "levels": ["器", "术", "法", "道"],
+            "standards": ["IEC62443", "ISO26262", "IEC61508"],
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Dual Timeline ─────────────────────────────────────────
+
+@app.route("/api/dual-timeline/tick", methods=["POST"])
+def dual_tick():
+    try:
+        data = request.json or {}
+        mods = _get_dual_timeline()
+        if mods is None:
+            return jsonify({"success": False, "error": "DualTimeline module unavailable"}), 503
+        evt = data.get("event", "tick")
+        ts = data.get("timestamp", None)
+        state = mods["external"].tick(evt, ts)
+        return jsonify({"success": True, "data": {
+            "t": state.get("t", 0),
+            "event_count": state.get("event_count", 0),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/dual-timeline/step", methods=["POST"])
+def dual_step():
+    try:
+        data = request.json or {}
+        mods = _get_dual_timeline()
+        if mods is None:
+            return jsonify({"success": False, "error": "DualTimeline module unavailable"}), 503
+        evt = data.get("cognitive_event", "step")
+        state = mods["internal"].step(evt)
+        return jsonify({"success": True, "data": {
+            "tau": state.get("tau", 0),
+            "attention": state.get("attention", 0.0),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/dual-timeline/align", methods=["POST"])
+def dual_align():
+    try:
+        mods = _get_dual_timeline()
+        if mods is None:
+            return jsonify({"success": False, "error": "DualTimeline module unavailable"}), 503
+        result = mods["aligner"].align()
+        singularities = getattr(result, "singularities", [])
+        return jsonify({"success": True, "data": {
+            "aligned": getattr(result, "aligned", False),
+            "singularities": [str(s) for s in singularities],
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/dual-timeline/status", methods=["GET"])
+def dual_status():
+    try:
+        mods = _get_dual_timeline()
+        if mods is None:
+            return jsonify({"success": True, "data": {"status": "unavailable"}})
+        return jsonify({"success": True, "data": {
+            "status": "available",
+            "external_t": mods["external"]._t if hasattr(mods["external"], "_t") else 0,
+            "internal_tau": mods["internal"]._tau if hasattr(mods["internal"], "_tau") else 0,
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── IT-OT Bridge ──────────────────────────────────────────
+
+@app.route("/api/itot/translate", methods=["POST"])
+def itot_translate():
+    try:
+        data = request.json or {}
+        mods = _get_itot_bridge()
+        if mods is None:
+            return jsonify({"success": False, "error": "ITOT module unavailable"}), 503
+        text = data.get("text", "")
+        direction = data.get("direction", "it2ot")
+        result = mods["translator"].translate(text, direction)
+        return jsonify({"success": True, "data": {
+            "original": text,
+            "translated": result,
+            "direction": direction,
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/itot/debt-assess", methods=["POST"])
+def itot_debt_assess():
+    try:
+        mods = _get_itot_bridge()
+        if mods is None:
+            return jsonify({"success": False, "error": "ITOT module unavailable"}), 503
+        report = mods["debt_gov"].assess()
+        return jsonify({"success": True, "data": {
+            "total_debt": getattr(report, "total_debt", 0.0),
+            "categories": getattr(report, "categories", {}),
+            "recommendations": getattr(report, "recommendations", []),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/itot/zero-trust", methods=["POST"])
+def itot_zero_trust():
+    try:
+        data = request.json or {}
+        mods = _get_itot_bridge()
+        if mods is None:
+            return jsonify({"success": False, "error": "ITOT module unavailable"}), 503
+        result = mods["zt_gate"].evaluate(
+            source=data.get("source", "unknown"),
+            request_iota=data.get("request_iota", 0.5),
+            content=data.get("content", ""),
+        )
+        return jsonify({"success": True, "data": {
+            "allowed": getattr(result, "allowed", False),
+            "adc_mode": getattr(result, "adc_mode", "UNKNOWN"),
+            "reason": getattr(result, "reason", ""),
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/itot/kpi", methods=["GET"])
+def itot_kpi():
+    try:
+        mods = _get_itot_bridge()
+        if mods is None:
+            return jsonify({"success": True, "data": {"status": "unavailable"}})
+        r = mods["kpi"].compute_unified_r()
+        return jsonify({"success": True, "data": {"unified_r": r}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════
+# 启动入口
+# ═══════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
-    # 首次启动时导入 models 会自动建表（通过 get_engine 触发 create_all）
     from models import get_engine
     get_engine()
     print(f"数据库初始化完成: {DB_PATH}")
