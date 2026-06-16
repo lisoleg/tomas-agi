@@ -21,6 +21,7 @@ import type { MergeSummary } from '../api/distiller'
 import { getAllKnowledgeItems, saveKnowledgeItems, type KnowledgeItem } from '../api/knowledgeStore'
 import { deleteCorpusEntry, getAllCorpusEntries, saveCorpusEntry, saveConflictDecision, type CorpusEntry, type ConflictDecision } from '../api/corpusStore'
 import { EMLGraphVisualization } from './EMLGraphVisualization'
+import { DIKWPPieChart, type DIKWPLayerInfo } from './DIKWPPieChart'
 import { useToast } from './Toast'
 
 interface DistillPanelProps {
@@ -1961,6 +1962,36 @@ function KnowledgeBrowser({
     return conceptNames?.get(vertexId) ?? fallback
   }
 
+  // DIKWP 层分布计算 (根据 delta/I-value 分 bin)
+  const dikwpPieData = useMemo((): DIKWPLayerInfo[] => {
+    const edges = graph.edges
+    // 用 delta 字段 (ℐ-值), 回退到 weight
+    const iValues = edges.map(e => (e as any).delta ?? (e as any).i_val ?? e.weight).filter((v: number) => !isNaN(v))
+    if (iValues.length === 0) return []
+
+    // ℐ-bin 分桶: D(0-0.15) I(0.15-0.35) K(0.35-0.65) W(0.65-0.85) P(0.85-1.0)
+    const bins = { D: 0, I: 0, K: 0, W: 0, P: 0 }
+    const binDefs = { D: [0, 0.15], I: [0.15, 0.35], K: [0.35, 0.65], W: [0.65, 0.85], P: [0.85, 1.0] } as const
+    const names = { D: '数据 Data', I: '信息 Info', K: '知识 Knowledge', W: '智慧 Wisdom', P: '目的 Purpose' }
+
+    for (const v of iValues) {
+      for (const [layer, [lo, hi]] of Object.entries(binDefs)) {
+        if (v >= lo && (v < hi || (layer === 'P' && v >= hi))) {
+          (bins as any)[layer]++
+          break
+        }
+      }
+    }
+
+    const total = Math.max(iValues.length, 1)
+    return (['D', 'I', 'K', 'W', 'P'] as const).map(layer => ({
+      layer,
+      name: names[layer],
+      count: bins[layer],
+      percentage: Math.round(bins[layer] / total * 1000) / 10,
+    }))
+  }, [graph.edges])
+
   /** 删除指定概念 */
   const handleDeleteConcept = async (vertexId: number, label: string) => {
     if (deleting) return
@@ -2032,6 +2063,12 @@ function KnowledgeBrowser({
           <div className="text-xs text-textSecondary">𝕀̄ 均值</div>
         </div>
       </div>
+
+      {/* DIKWP 层分布饼图 */}
+      <DIKWPPieChart
+        data={dikwpPieData}
+        totalEdges={graph.edges.length}
+      />
 
         {/* 概念列表 */}
       <div className="border border-white/10 rounded-lg overflow-hidden">
