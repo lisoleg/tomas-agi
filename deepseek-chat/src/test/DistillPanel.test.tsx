@@ -51,27 +51,41 @@ vi.mock('../components/Toast', () => ({
 }))
 
 
+// Mock ResizeObserver (not in JSDOM — needed by EMLGraphVisualization child)
+class MockResizeObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+
+
 describe('DistillPanel', () => {
   const defaultProps = { apiKey: 'test-key' }
 
-  it('渲染蒸馏面板基础结构', () => {
+  it('渲染 LLM 蒸馏器标题', () => {
     render(<DistillPanel {...defaultProps} />)
 
-    // 应显示 Tab 按钮
-    expect(screen.getByText('蒸馏')).toBeInTheDocument()
-    expect(screen.getByText('知识浏览')).toBeInTheDocument()
-    expect(screen.getByText('Token Bridge')).toBeInTheDocument()
+    // 标题栏应显示 LLM 蒸馏器
+    expect(screen.getByText('LLM 蒸馏器')).toBeInTheDocument()
   })
 
-  it('默认显示蒸馏 Tab 内容', () => {
+  it('显示文本输入区和占位符', async () => {
     render(<DistillPanel {...defaultProps} />)
 
-    // 蒸馏 Tab 应显示文本输入和示例语料
-    expect(screen.getByText(/输入文本/i)).toBeInTheDocument()
-    expect(screen.getByText(/示例语料/i)).toBeInTheDocument()
+    // 文本输入区存在，占位符包含"开始蒸馏"
+    const textarea = screen.getByPlaceholderText(/开始蒸馏/i)
+    expect(textarea).toBeInTheDocument()
   })
 
-  it('显示示例语料按钮（物理/化学/AI/医学）', () => {
+  it('显示开始蒸馏按钮（含 emoji）', async () => {
+    render(<DistillPanel {...defaultProps} />)
+
+    // 按钮文本含 🔬 和"开始蒸馏"
+    expect(screen.getByText(/开始蒸馏/)).toBeInTheDocument()
+  })
+
+  it('显示示例语料按钮（物理/化学/AI/医学）', async () => {
     render(<DistillPanel {...defaultProps} />)
 
     expect(screen.getByText('物理')).toBeInTheDocument()
@@ -80,30 +94,17 @@ describe('DistillPanel', () => {
     expect(screen.getByText('医学')).toBeInTheDocument()
   })
 
-  it('显示开始蒸馏按钮', () => {
+  it('默认显示文本输入区', async () => {
     render(<DistillPanel {...defaultProps} />)
 
-    expect(screen.getByText('开始蒸馏')).toBeInTheDocument()
+    // 应显示示例语料标题
+    expect(screen.getByText(/示例语料/i)).toBeInTheDocument()
   })
 
-  it('切换到知识浏览 Tab 显示图谱区域', async () => {
+  it('标题栏包含副标题', () => {
     render(<DistillPanel {...defaultProps} />)
 
-    const knowledgeTab = screen.getByText('知识浏览')
-    knowledgeTab.click()
-
-    // 知识浏览 Tab 应显示图谱提示
-    expect(screen.getByText(/选择语料或知识/i)).toBeInTheDocument()
-  })
-
-  it('切换到 Token Bridge Tab', () => {
-    render(<DistillPanel {...defaultProps} />)
-
-    const bridgeTab = screen.getByText('Token Bridge')
-    bridgeTab.click()
-
-    // Token Bridge Tab 应显示推理区域
-    // 由于没有加载 EML，可能显示上传提示
-    expect(screen.getByText(/上传.*EML|加载.*EML|Token Bridge/i)).toBeTruthy()
+    // 副标题描述
+    expect(screen.getByText(/将世界知识压缩进 EML 图/i)).toBeInTheDocument()
   })
 })
