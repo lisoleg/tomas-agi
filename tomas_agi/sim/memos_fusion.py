@@ -455,26 +455,22 @@ class TOMAS_Mem_OS_Fusion:
         overwrite = True
         mus_active = False
         if self.enable_mus:
-            # 检查当前输入的 asym（从 EML 边获取）
-            if abs(asym) > 0.01:
-                mus_active = True
-                overwrite = False
-            else:
-                # 检查是否与存储中的现有记忆矛盾
-                existing = self.store.retrieve_by_concepts(list(concept_pair))
-                if existing:
-                    for ex in existing:
-                        # 如果现有记忆的 asym != 0，或关系矛盾
-                        if abs(ex.asym) > 0.01:
+            # 检查是否与存储中的现有记忆矛盾
+            existing = self.store.retrieve_by_concepts(list(concept_pair))
+            if existing:
+                for ex in existing:
+                    # 如果现有记忆的 asym 与当前 asym 符号相反 → 矛盾
+                    if abs(ex.asym) > 0.01 and abs(asym) > 0.01:
+                        if (ex.asym > 0 and asym < 0) or (ex.asym < 0 and asym > 0):
                             mus_active = True
                             overwrite = False
                             break
-                        # 简单矛盾检测：关系文本相似但结论不同
-                        if self._is_contradictory(relation, ex.relation):
-                            mus_active = True
-                            asym = 0.5  # 标记为正 asym
-                            overwrite = False
-                            break
+                    # 简单矛盾检测：关系文本矛盾
+                    if self._is_contradictory(relation, ex.relation):
+                        mus_active = True
+                        asym = 0.5  # 标记为正 asym
+                        overwrite = False
+                        break
                 
                 if mus_active:
                     logger.info(f"MUS 激活：{concept_pair} 存在矛盾记忆")
