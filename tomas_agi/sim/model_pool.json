@@ -1,0 +1,184 @@
+{
+  "_description": "TOMAS LLM Router 模型池配置 — 12 家开源模型 + Miro-Med 医学专家",
+  "_version": "2.0",
+  "_strategy": "LLM 只是'舌头'，TOMAS 内核（EML + NASGA + 死零/MUS）不可外包。哪家强用哪家，哪家开源换哪家。",
+
+  "task_routing": {
+    "reason":        { "default": "deepseek",  "desc": "通用推理/对话" },
+    "long_extract":  { "default": "glm5",      "desc": "长文 EML 抽边（典籍/专利）" },
+    "code_gen":      { "default": "deepseek",  "desc": "代码生成（GPCT/ITC 伪码）" },
+    "med_annotate":  { "default": "miromed",   "desc": "脏腑-神经-精神 EML 超边初标" },
+    "edu":           { "default": "gemma",     "desc": "教育/轻量 EML 初标" },
+    "academic":      { "default": "internlm",  "desc": "学术/数理 EML" },
+    "rag":           { "default": "commandr",  "desc": "检索增强（RAG-EML）" },
+    "multilingual":  { "default": "qwen3",     "desc": "多语 EML 对照" },
+    "fallback":      { "default": "deepseek",  "desc": "兜底路由" }
+  },
+
+  "models": {
+    "deepseek": {
+      "name": "deepseek",
+      "label": "DeepSeek V3",
+      "provider": "DeepSeek AI",
+      "model": "deepseek-chat",
+      "api_base": "https://api.deepseek.com/v1",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "timeout": 60,
+      "enabled": true,
+      "notes": "MoE 性价比之王；TOMAS Phase 1 主力推理核"
+    },
+    "qwen3": {
+      "name": "qwen3",
+      "label": "Qwen3-235B-A22B",
+      "provider": "Alibaba Cloud",
+      "model": "qwen3-235b-a22b",
+      "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "QWEN3_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "中文预训练强；Thinking Mode 近 κ-Gate；需要阿里云 DashScope API Key"
+    },
+    "glm5": {
+      "name": "glm5",
+      "label": "GLM-5-Pro",
+      "provider": "Zhipu AI",
+      "model": "glm-5-pro",
+      "api_base": "https://open.bigmodel.cn/api/paas/v4",
+      "api_key_env": "GLM5_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "timeout": 120,
+      "enabled": false,
+      "notes": "唯一稳跑 1M ctx；抽《内经》超边神器；需要智谱 API Key"
+    },
+    "kimi": {
+      "name": "kimi",
+      "label": "Kimi-K2-Code",
+      "provider": "Moonshot AI",
+      "model": "kimi-k2-code",
+      "api_base": "https://api.moonshot.cn/v1",
+      "api_key_env": "KIMI_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "Code Bench 强；代码生成/GPCT 伪码；需要月之暗面 API Key"
+    },
+    "minimax": {
+      "name": "minimax",
+      "label": "MiniMax-M3-MoE",
+      "provider": "MiniMax",
+      "model": "minimax-m3",
+      "api_base": "https://api.minimax.chat/v1",
+      "api_key_env": "MINIMAX_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "Agent 能力强；Agentic 预解析 / 多模态；需要 MiniMax API Key"
+    },
+    "llama4": {
+      "name": "llama4",
+      "label": "Llama-4-Scout-17B-16E",
+      "provider": "Meta",
+      "model": "llama-4-scout-17b-16e",
+      "api_base": "https://api.llama-api.com/v1",
+      "api_key_env": "LLAMA4_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "西文学术 EML / 对照基线；需要 Llama API Key"
+    },
+    "commandr": {
+      "name": "commandr",
+      "label": "Command-R-Plus-104B",
+      "provider": "Cohere",
+      "model": "command-r-plus",
+      "api_base": "https://api.cohere.ai/v1",
+      "api_key_env": "COMMAND_R_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "强 Grounding，近死零精神；RAG-EML 检索增强；需要 Cohere API Key"
+    },
+    "mistral": {
+      "name": "mistral",
+      "label": "Mistral-Large-2-123B",
+      "provider": "Mistral AI",
+      "model": "mistral-large-2",
+      "api_base": "https://api.mistral.ai/v1",
+      "api_key_env": "MISTRAL_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "量化友好，适合现场 Demo / 端侧伴生"
+    },
+    "gemma": {
+      "name": "gemma",
+      "label": "Gemma-3-27B-it",
+      "provider": "Google",
+      "model": "gemma-3-27b-it",
+      "api_base": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_key_env": "GEMMA_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "小权重，适合伴生 Host；教育/轻量 EML"
+    },
+    "miromed": {
+      "name": "miromed",
+      "label": "Miro-Med-70B (TCCI)",
+      "provider": "TCCI / MiroMind",
+      "model": "miro-llama-3.1-70b-med",
+      "api_base": "https://api.miromind.ai/v1",
+      "api_key_env": "MIROMED_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "陈天桥 TCCI 背书；预训练含 UMLS/SNOMED/Allen Brain；脏腑-神经-精神 EML 初标黄金工具"
+    },
+    "internlm": {
+      "name": "internlm",
+      "label": "InternLM-2.5-20B",
+      "provider": "Shanghai AI Lab",
+      "model": "internlm-2.5-20b",
+      "api_base": "https://api.internlm.com/v1",
+      "api_key_env": "INTERNLM_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "Math 强；学术/数理 EML；需要 InternLM API Key"
+    },
+    "yi": {
+      "name": "yi",
+      "label": "Yi-1.5-34B-200K",
+      "provider": "01.AI",
+      "model": "yi-1.5-34b-200k",
+      "api_base": "https://api.01.ai/v1",
+      "api_key_env": "YI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "timeout": 60,
+      "enabled": false,
+      "notes": "中英文 EML 对照；长 ctx 稳"
+    }
+  },
+
+  "eml_injection": {
+    "kappa": 4.0,
+    "dead_zero_theta": 0.15,
+    "mus_tags": ["Asym≠0 double-exist"],
+    "kappa_snap_rule": "Prefer highest ℐ(e); if tie & MUS ⇒ Retain Continuation.",
+    "arbitration_rule": "Do NOT hallucinate unsupported claims. If unsure ⇒ Request arbitration."
+  }
+}

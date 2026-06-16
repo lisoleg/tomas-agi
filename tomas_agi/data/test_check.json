@@ -1,0 +1,21 @@
+[
+  {
+    "edge_id": "f8730fcc2dd70269",
+    "concept_pair": [
+      "test",
+      "未知"
+    ],
+    "relation": "test",
+    "i_value": 0.5,
+    "asym": 0.0,
+    "psi_anchor": {
+      "self_state": "test",
+      "kappa_at_write": 3,
+      "timestamp": "2026-06-16T08:33:59"
+    },
+    "meta": {},
+    "created_at": "2026-06-16T08:33:59",
+    "last_accessed": "2026-06-16T08:33:59",
+    "access_count": 1
+  }
+]
