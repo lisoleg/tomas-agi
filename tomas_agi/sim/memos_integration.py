@@ -32,6 +32,10 @@ def enable_memos_for_engine(engine, args) -> TOMAS_Mem_OS_Fusion:
         TOMAS_Mem_OS_Fusion 实例
     """
     # 初始化融合层
+    # 自动从 args 中读取 EML 路径（复用 token_bridge 的 --load / --concepts）
+    eml_path = getattr(args, 'load', None)  # --load 参数
+    concepts_path = getattr(args, 'concepts', None)  # --concepts 参数
+    
     fusion = TOMAS_Mem_OS_Fusion(
         store_path=args.memos_store,
         theta_dead=args.theta_dead,
@@ -40,6 +44,8 @@ def enable_memos_for_engine(engine, args) -> TOMAS_Mem_OS_Fusion:
         enable_mus=not args.disable_mus,
         enable_psi=args.memos_psi,
         enable_kappa_gate=args.memos_kappa_gate,
+        eml_path=eml_path,
+        concepts_json_path=concepts_path,
     )
     
     # 将 fusion 附加到 engine

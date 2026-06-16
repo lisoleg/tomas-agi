@@ -284,6 +284,8 @@ class TOMAS_Mem_OS_Fusion:
         enable_mus: bool = True,
         enable_psi: bool = True,
         enable_kappa_gate: bool = True,
+        eml_path: str = None,
+        concepts_json_path: str = None,
     ):
         """
         初始化融合层
@@ -296,6 +298,8 @@ class TOMAS_Mem_OS_Fusion:
             enable_mus: 是否启用 MUS 双存
             enable_psi: 是否启用 ψ-锚
             enable_kappa_gate: 是否启用 κ-Gate 激活
+            eml_path: EML 二进制文件路径（.eml），用于 Layer 3 语义相似度
+            concepts_json_path: 概念名称 JSON 文件路径（.concepts.json）
         """
         self.store = MemoryStore(store_path)
         self.dead_zero_gate = DeadZeroMUSGate(
@@ -310,13 +314,19 @@ class TOMAS_Mem_OS_Fusion:
         self.enable_psi = enable_psi
         self.enable_kappa_gate = enable_kappa_gate
         
-        # 初始化矛盾检测器（三层架构）
+        # 初始化矛盾检测器（三层架构，含 EML Layer 3）
+        enable_eml = bool(eml_path)
         self.contradiction_detector = ContradictionDetector(
-            enable_nlp=True,   # V1.2: 启用 NLP 主谓宾提取
-            enable_eml=False,  # V2.0: 后续启用 EML 语义相似度
+            enable_nlp=True,          # V1.2: 启用 NLP 主谓宾提取
+            enable_eml=enable_eml,    # V2.0: 自动启用 EML 语义相似度
+            eml_path=eml_path,
+            concepts_json_path=concepts_json_path,
         )
         
-        logger.info(f"TOMAS-MemOS 融合层初始化完成: theta_dead={theta_dead}, enable_mus={enable_mus}")
+        logger.info(
+            f"TOMAS-MemOS 融合层初始化完成: theta_dead={theta_dead}, "
+            f"enable_mus={enable_mus}, enable_eml={enable_eml}"
+        )
     
     def estimate_i(self, user_input: str, context: Dict[str, Any]) -> float:
         """
