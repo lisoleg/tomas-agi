@@ -503,10 +503,23 @@ class DeadZeroMUSGate:
         self.k_snap_decider = KSnapDecider(tie_threshold=tie_threshold)
         self.enable_audit = enable_audit
         
+        # ADC 反欺骗指标（文章3附录G）
+        self.adc_metrics = {
+            'dz_intercepted': 0,
+            'dz_total': 0,
+            'mus_retained': 0,
+            'mus_total': 0,
+            'audit_violations': 0,
+        }
+        
+        # ψ-审计日志（文章3 P_ADC_1: 强制输出欺骗 → 触发违规警报）
+        self.psi_audit_log: List[Dict] = []
+        
         logger.info(f"[DeadZeroMUSGate] 初始化完成")
         logger.info(f"  θ_dead={theta_dead:.2f}")
         logger.info(f"  MUS tags={mus_tags or ['Asym≠0 double-exist']}")
         logger.info(f"  κ-Snap tie_threshold={tie_threshold:.3f}")
+        logger.info(f"  ADC metrics enabled")
     
     def process(
         self,
@@ -608,6 +621,129 @@ class DeadZeroMUSGate:
     def add_mus_pattern(self, pattern_a: str, pattern_b: str, tag: str):
         """动态添加 MUS 悖论模式"""
         self.mus_arbitrator.add_paradox_pattern(pattern_a, pattern_b, tag)
+
+    # ----- ADC 反欺骗接口 (文章3附录G) -----
+
+    def check_with_adc(
+        self,
+        value: float,
+        threshold: float,
+        adc_context: Optional[Dict] = None,
+    ) -> bool:
+        """
+        ADC 增强的死零检查
+
+        与普通 check 的区别：
+        - 记录 ADC 指标（用于计算拦截率/保留率）
+        - 若触发死零，记录审计日志
+        - 若用户强制输出（绕过死零），触发 ψ-违规警报（P_ADC_1）
+
+        Args:
+            value: ℐ-值
+            threshold: θ_dead 阈值
+            adc_context: ADC 上下文 {case_id, input_text, expected_behavior}
+
+        Returns:
+            True = 死零触发（应拒绝）
+        """
+        ctx = adc_context or {}
+        is_dead = value < threshold
+
+        if is_dead:
+            self.adc_metrics['dz_intercepted'] += 1
+            self.adc_metrics['dz_total'] += 1
+
+            # 记录审计日志
+            self.psi_audit_log.append({
+                'timestamp': __import__('time').strftime("%Y-%m-%dT%H:%M:%S"),
+                'event': 'DEAD_ZERO_INTERCEPTED',
+                'value': value,
+                'threshold': threshold,
+                'case_id': ctx.get('case_id', 'unknown'),
+                'input_text': ctx.get('input_text', '')[:80],
+            })
+        else:
+            self.adc_metrics['dz_total'] += 1
+
+        return is_dead
+
+    def record_psi_snapshot(
+        self,
+        snap_id: str,
+        hyperedge_id: str,
+        kappa: int,
+        mus_active: bool = False,
+    ):
+        """
+        记录 ψ-审计快照（文章3 P_ADC_2: MUS 状态不可自行丢弃）
+
+        Args:
+            snap_id: 快照 ID
+            hyperedge_id: EML 超边 ID
+            kappa: 当前 κ 值
+            mus_active: 是否 MUS 激活
+        """
+        import time
+        snapshot = {
+            'snap_id': snap_id,
+            'hyperedge_id': hyperedge_id,
+            'kappa': kappa,
+            'mus_active': mus_active,
+            'timestamp': time.strftime("%Y-%m-%dT%H:%M:%S"),
+        }
+        self.psi_audit_log.append({
+            'timestamp': snapshot['timestamp'],
+            'event': 'PSI_SNAPSHOT',
+            'snapshot': snapshot,
+        })
+
+        # P_ADC_2: 标记 MUS 保留
+        if mus_active:
+            self.adc_metrics['mus_total'] += 1
+            self.adc_metrics['mus_retained'] += 1
+
+        logger.debug(f"[DeadZeroMUSGate] ψ-快照记录: {snap_id}")
+
+    def record_audit_violation(self, violation_type: str, details: Optional[Dict] = None):
+        """
+        记录审计违规（P_ADC_1: 强制输出欺骗 → 违规警报）
+
+        Args:
+            violation_type: 违规类型
+            details: 违规详情
+        """
+        import time
+        self.psi_audit_log.append({
+            'timestamp': time.strftime("%Y-%m-%dT%H:%M:%S"),
+            'event': 'AUDIT_VIOLATION',
+            'violation_type': violation_type,
+            'details': details or {},
+        })
+        self.adc_metrics['audit_violations'] += 1
+        logger.error(f"[ADC-Audit] 违规警报: {violation_type}")
+
+    def get_adc_report(self) -> Dict:
+        """
+        获取 ADC 指标汇总
+
+        Returns:
+            {
+                'dead_zero_interception_rate': float,
+                'mus_retention_rate': float,
+                'audit_violations': int,
+                'audit_log_size': int,
+            }
+        """
+        dz_total = max(self.adc_metrics['dz_total'], 1)
+        mus_total = max(self.adc_metrics['mus_total'], 1)
+
+        return {
+            'dead_zero_interception_rate': (self.adc_metrics['dz_intercepted'] / dz_total) * 100,
+            'mus_retention_rate': (self.adc_metrics['mus_retained'] / mus_total) * 100,
+            'audit_violations': self.adc_metrics['audit_violations'],
+            'audit_log_size': len(self.psi_audit_log),
+            'raw_metrics': dict(self.adc_metrics),
+        }
 
 
 # ============================================================

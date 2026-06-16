@@ -745,6 +745,41 @@ class TOMAS_Mem_OS_Fusion:
             "enable_kappa_gate": self.enable_kappa_gate,
         }
 
+    # ----- ψ-审计接口 (文章3) -----
+
+    def record_psi_snapshot(
+        self,
+        snap_id: str,
+        hyperedge_id: str,
+        kappa: int,
+        mus_active: bool = False,
+    ):
+        """
+        记录 ψ-审计快照
+
+        委托给 DeadZeroMUSGate.record_psi_snapshot()
+
+        Args:
+            snap_id: 快照 ID
+            hyperedge_id: EML 超边 ID
+            kappa: 当前 κ 值
+            mus_active: 是否 MUS 激活
+        """
+        self.dead_zero_gate.record_psi_snapshot(
+            snap_id=snap_id,
+            hyperedge_id=hyperedge_id,
+            kappa=kappa,
+            mus_active=mus_active,
+        )
+
+    def get_audit_log(self) -> List[Dict]:
+        """获取 ψ-审计日志"""
+        return self.dead_zero_gate.psi_audit_log.copy()
+
+    def get_adc_metrics(self) -> Dict:
+        """获取 ADC 反欺骗指标"""
+        return self.dead_zero_gate.get_adc_report()
+
 
 # 导出
 __all__ = ["TOMAS_Mem_OS_Fusion", "MemoryStore", "MemoryRecord", "PsiAnchor", "PsiAnchorManager"]
