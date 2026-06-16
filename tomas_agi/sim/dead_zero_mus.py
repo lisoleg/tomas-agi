@@ -1144,3 +1144,54 @@ if __name__ == '__main__':
     print(f"  Snap 得分: {result['snap_score']:.4f}")
     
     print("\n=== 所有测试通过 ===")
+
+
+# ═══════════════════════════════════════════════════════════════
+# IDO 死零扩展 (2026-06-16)
+# ═══════════════════════════════════════════════════════════════
+
+class IDODeadZeroExtension:
+    """IDO 死零扩展 — 将 IDO 五元素模板的死零逻辑注入 DeadZeroMUSGate
+
+    基于文章融合架构 (图1):
+      IDO Flow → EML Query: ℐ_support(证明路径) 是否达标?
+         ℐ < θ_dead OR A1未建 → [REJECT/UNPROVABLE]
+         Asym≠0 → [MUS_ACTIVE]
+    """
+
+    def __init__(self, gate: "DeadZeroMUSGate"):
+        self.gate = gate
+        try:
+            from .ido_bridge import IDOBridge, IDOTier
+            self._ido = IDOBridge(theta_dead=gate.dead_zero_checker.theta_dead)
+            self.available = True
+        except ImportError:
+            try:
+                from ido_bridge import IDOBridge, IDOTier
+                self._ido = IDOBridge(theta_dead=gate.dead_zero_checker.theta_dead)
+                self.available = True
+            except ImportError:
+                self._ido = None
+                self.available = False
+
+    def audit_ido_proof(self, problem: str, i_value: float,
+                        axiom_a1_proved: bool = False,
+                        asym: float = 0.0,
+                        evidence_flags: Optional[List[str]] = None) -> Dict[str, Any]:
+        """IDO 证明审计 — MUS 优先于死零 A1 检查"""
+        is_mus, mus_reason = self._ido.mus_check(asym, len(evidence_flags) if evidence_flags else 0) if self.available else (False, "no_bridge")
+        is_dead, reason = self._ido.dead_zero_check(i_value, axiom_a1_proved) if self.available else (i_value < 0.15, "no_bridge")
+
+        if is_mus:
+            status = "MUS_ACTIVE"
+        elif is_dead:
+            status = "REJECT"
+        else:
+            status = "ALLOW"
+
+        return {
+            "problem": problem, "i_value": i_value, "asym": asym,
+            "axiom_a1": axiom_a1_proved, "status": status,
+            "dead_zero_triggered": is_dead, "mus_triggered": is_mus,
+            "reason": reason if is_dead else (mus_reason if is_mus else "PASS"),
+        }

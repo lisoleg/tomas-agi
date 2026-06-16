@@ -153,7 +153,7 @@ class ContradictionDetector:
             print("Warning: jieba not installed. Run: pip install jieba")
             self.jieba = None
             self.jieba_initialized = False
-            self.enable_nlp = False
+            # Don't disable NLP entirely - _extract_spo works without jieba
     
     def _extract_spo(self, relation: str) -> SPO:
         """

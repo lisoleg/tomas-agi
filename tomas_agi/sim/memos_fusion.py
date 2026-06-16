@@ -17,9 +17,20 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 
-from .psi_anchor import PsiAnchor, PsiAnchorManager
-from .dead_zero_mus import DeadZeroMUSGate
-from .contradiction_detector import ContradictionDetector
+try:
+    from .psi_anchor import PsiAnchor, PsiAnchorManager
+except ImportError:
+    from psi_anchor import PsiAnchor, PsiAnchorManager
+
+try:
+    from .dead_zero_mus import DeadZeroMUSGate
+except ImportError:
+    from dead_zero_mus import DeadZeroMUSGate
+
+try:
+    from .contradiction_detector import ContradictionDetector
+except ImportError:
+    from contradiction_detector import ContradictionDetector
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -1258,6 +1269,214 @@ class TOMAS_Mem_OS_Fusion:
             "global_i_density": report.global_i_density,
             "details": report.details,
         }
+
+
+    # ══════════════════════════════════════════════
+    # IDO 桥接 (2026-06-16)
+    # ══════════════════════════════════════════════
+
+    def install_ido_bridge(self, theta_dead: float = 0.15):
+        """安装 IDO 桥接引擎"""
+        try:
+            from .ido_bridge import IDOBridge
+        except ImportError:
+            from ido_bridge import IDOBridge
+        self._ido_bridge = IDOBridge(theta_dead=theta_dead)
+
+    def ido_evaluate(self, hypothesis_data: Dict[str, Any],
+                     eml_data: Optional[List[Dict]] = None) -> Dict[str, Any]:
+        """IDO 假设评估 — 梯度流 + T-Proc 审计"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        try:
+            from .ido_bridge import IDOHypothesis, IDOTier, EvidenceLevel
+        except ImportError:
+            from ido_bridge import IDOHypothesis, IDOTier, EvidenceLevel
+        h = IDOHypothesis(
+            id=hypothesis_data.get("id", "unnamed"),
+            problem=hypothesis_data.get("problem", ""),
+            description=hypothesis_data.get("description", ""),
+            tier=IDOTier(hypothesis_data.get("tier", "Tier2")),
+            axiom_status=hypothesis_data.get("axiom_status", {"A1":False,"A2":False,"A3":False,"A4":False}),
+            i_support=hypothesis_data.get("i_support", 0.3),
+            asym=hypothesis_data.get("asym", 0.0),
+            competing=hypothesis_data.get("competing", []),
+            evidence=EvidenceLevel(hypothesis_data.get("evidence", "UNGROUNDED")),
+        )
+        assessment = self._ido_bridge.evaluate_hypothesis(h, eml_data)
+        return {
+            "hypothesis_id": assessment.hypothesis_id,
+            "tier": assessment.tier.value,
+            "tomas_status": assessment.tomas_status,
+            "i_support": assessment.i_support,
+            "passed_axioms": assessment.passed_axioms,
+            "pending_axioms": assessment.pending_axioms,
+            "next_action": assessment.next_action,
+            "report": assessment.report,
+        }
+
+    def ido_flow_search(self, problem: str, eml_data: Optional[List[Dict]] = None) -> Dict:
+        """IDO 梯度流搜索"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        return self._ido_bridge.flow_search(problem, eml_data)
+
+    def ido_tier_classify(self, problem: str, axiom_status: Optional[Dict] = None) -> str:
+        """IDO 分层分类"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        return self._ido_bridge.tier_classify(problem, axiom_status).value
+
+    def ido_kappa_store(self, content: Dict, record_id: Optional[str] = None) -> Dict:
+        """κ-MM 记忆存储"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        record = self._ido_bridge.kappa_store(content, record_id)
+        return {"id": record.id, "holographic_projection": record.holographic_projection,
+                "kappa_signature": str(record.kappa_signature), "retrieval_count": record.retrieval_count}
+
+    def ido_kappa_recall(self, record_id: str) -> Optional[Dict]:
+        """κ-MM 记忆检索"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        record = self._ido_bridge.kappa_recall(record_id)
+        if not record: return None
+        return {"id": record.id, "content": record.content, "holographic_projection": record.holographic_projection,
+                "kappa_signature": str(record.kappa_signature), "retrieval_count": record.retrieval_count}
+
+    def ido_prime_zero_measure(self, prime_data: Optional[List[float]] = None,
+                               zero_data: Optional[List[float]] = None) -> Dict:
+        """素数-零点对偶测度"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        state = self._ido_bridge.prime_zero_measure(prime_data, zero_data)
+        return state.to_dict()
+
+    def ido_predictions(self) -> Dict:
+        """可证伪预言 P_IDO_1/2/3"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            raise RuntimeError("IDO 桥接未安装")
+        return {
+            "p_ido_1": self._ido_bridge.predict_p_ido_1(),
+            "p_ido_2": self._ido_bridge.predict_p_ido_2(),
+            "p_ido_3": self._ido_bridge.predict_p_ido_3(),
+        }
+
+    def get_ido_stats(self) -> Dict:
+        """IDO 桥接统计"""
+        if not hasattr(self, '_ido_bridge') or not self._ido_bridge:
+            return {"status": "not_installed"}
+        return self._ido_bridge.get_stats()
+
+
+    # ══════════════════════════════════════════════════════════
+    # FDE 本体构建器集成 (道法术器)
+    # ══════════════════════════════════════════════════════════
+
+    def install_fde_builder(self, theta_dead: float = 0.15) -> None:
+        """安装 FDE 本体构建器"""
+        from .fde_builder import FDEOntologyBuilder
+        self._fde_builder = FDEOntologyBuilder(theta_dead=theta_dead)
+
+    @property
+    def fde_installed(self) -> bool:
+        return hasattr(self, '_fde_builder') and self._fde_builder is not None
+
+    def fde_add_node(self, node) -> None:
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        self._fde_builder.add_node(node)
+
+    def fde_validate(self, node_id: str):
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        return self._fde_builder.validate_full(node_id)
+
+    def fde_build_from_eml(self, vertices: list, domain: str = "") -> list:
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        return self._fde_builder.build_from_eml(vertices, domain)
+
+    def fde_calibrate(self, node_id: str, evidence: list) -> float:
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        return self._fde_builder.calibrate_iota(node_id, evidence)
+
+    def fde_set_echo(self, node_id: str, ctx) -> None:
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        self._fde_builder.set_echo_context(node_id, ctx)
+
+    def fde_check_alignment(self, node_id: str, threshold: float = 0.7) -> dict:
+        if not self.fde_installed: raise RuntimeError("FDE 构建器未安装")
+        return self._fde_builder.check_cross_domain_alignment(node_id, threshold)
+
+    def fde_stats(self) -> dict:
+        if not self.fde_installed: return {"status": "not_installed"}
+        return self._fde_builder.stats
+
+    # ══════════════════════════════════════════════════════════
+    # 双时间维度引擎集成
+    # ══════════════════════════════════════════════════════════
+
+    def install_dual_timeline(self, theta_dead: float = 0.15, max_recursion: int = 10) -> None:
+        """安装双时间维度引擎"""
+        from .dual_timeline import DualTimelineEngine
+        self._dual_timeline = DualTimelineEngine(
+            theta_dead=theta_dead, max_recursion=max_recursion
+        )
+
+    @property
+    def dual_timeline_installed(self) -> bool:
+        return hasattr(self, '_dual_timeline') and self._dual_timeline is not None
+
+    def dt_observe(self, event_id: str, payload: dict = None, iota: float = 0.5):
+        if not self.dual_timeline_installed: raise RuntimeError("双时间引擎未安装")
+        return self._dual_timeline.observe(event_id, payload, iota)
+
+    def dt_think(self, event_id: str, content: str, iota: float = 0.5,
+                 recursion: int = 0, predecessors: list = None, linked_causal: str = None):
+        if not self.dual_timeline_installed: raise RuntimeError("双时间引擎未安装")
+        return self._dual_timeline.think(event_id, content, iota, recursion, predecessors, linked_causal)
+
+    def dt_stats(self) -> dict:
+        if not self.dual_timeline_installed: return {"status": "not_installed"}
+        return self._dual_timeline.stats
+
+    # ══════════════════════════════════════════════════════════
+    # IT-OT 翻译桥集成
+    # ══════════════════════════════════════════════════════════
+
+    def install_itot_bridge(self, theta_dead: float = 0.15) -> None:
+        """安装 IT-OT 翻译桥"""
+        from .itot_bridge import ITOTBridge
+        self._itot_bridge = ITOTBridge(theta_dead=theta_dead)
+
+    @property
+    def itot_installed(self) -> bool:
+        return hasattr(self, '_itot_bridge') and self._itot_bridge is not None
+
+    def itot_translate(self, term: str, source: str = "IT") -> str:
+        if not self.itot_installed: raise RuntimeError("IT-OT 翻译桥未安装")
+        from .itot_bridge import TechDomain
+        domain = TechDomain.IT if source == "IT" else TechDomain.OT
+        result = self._itot_bridge.translate(term, domain)
+        return result or ""
+
+    def itot_register_debt(self, debt) -> None:
+        if not self.itot_installed: raise RuntimeError("IT-OT 翻译桥未安装")
+        self._itot_bridge.register_debt(debt)
+
+    def itot_scan_debts(self) -> list:
+        if not self.itot_installed: raise RuntimeError("IT-OT 翻译桥未安装")
+        return self._itot_bridge.scan_critical_debts()
+
+    def itot_evaluate_trust(self, entity_id: str, iota: float = 0.5, content: str = ""):
+        if not self.itot_installed: raise RuntimeError("IT-OT 翻译桥未安装")
+        return self._itot_bridge.evaluate_trust(entity_id, iota, content)
+
+    def itot_register_entity(self, entity_id: str) -> None:
+        if not self.itot_installed: raise RuntimeError("IT-OT 翻译桥未安装")
+        self._itot_bridge.register_entity(entity_id)
+
+    def itot_stats(self) -> dict:
+        if not self.itot_installed: return {"status": "not_installed"}
+        return self._itot_bridge.stats
 
 
 # 导出

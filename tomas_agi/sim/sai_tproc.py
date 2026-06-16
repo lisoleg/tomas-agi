@@ -685,3 +685,101 @@ class SAIWorldModelSimulator:
             f"for prompt: {prompt[:60]}..."
         )
         return hypotheses
+
+
+# ═══════════════════════════════════════════════════════════════
+# IDO 集成: SAI 世界模型 → IDO 假设转换
+# ═══════════════════════════════════════════════════════════════
+
+class IDOSAIAdapter:
+    """SAI 世界模型 ↔ IDO 假设转换适配器
+
+    将 LeCun SAI 的 JEPA/SSL 世界模型输出映射为 IDO 认知假设,
+    使其可以通过 T-Proc IDO 审计管线进行死零/MUS/ℐ调度。
+    """
+
+    def __init__(self, auditor: Optional[TProcAuditor] = None):
+        self.auditor = auditor
+        try:
+            from .ido_bridge import IDOBridge, IDOTProcAuditor
+            self._ido_bridge = IDOBridge()
+            self._ido_auditor = IDOTProcAuditor(self._ido_bridge)
+        except ImportError:
+            try:
+                from ido_bridge import IDOBridge, IDOTProcAuditor
+                self._ido_bridge = IDOBridge()
+                self._ido_auditor = IDOTProcAuditor(self._ido_bridge)
+            except ImportError:
+                self._ido_bridge = None
+                self._ido_auditor = None
+
+    def sai_to_ido(self, hypothesis: Hypothesis) -> Any:
+        """将 SAI Hypothesis 转换为 IDO Hypothesis"""
+        if self._ido_bridge is None:
+            return None
+        try:
+            from .ido_bridge import IDOHypothesis, IDOTier, EvidenceLevel
+        except ImportError:
+            from ido_bridge import IDOHypothesis, IDOTier, EvidenceLevel
+
+        # 映射 SAI 置信度 → IDO ℐ支持度 + 证据层级
+        conf = hypothesis.confidence
+        if conf > 0.8:
+            evidence = EvidenceLevel.EMPIRICAL
+            i_val = conf
+        elif conf > 0.5:
+            evidence = EvidenceLevel.INFERRED
+            i_val = conf * 0.8
+        elif conf > 0.2:
+            evidence = EvidenceLevel.UNGROUNDED
+            i_val = conf * 0.5
+        else:
+            evidence = EvidenceLevel.UNGROUNDED
+            i_val = conf * 0.3
+
+        # 从 data 推断问题类型
+        data = hypothesis.data.lower()
+        if "perpetual" in data or "free_energy" in data or "overunity" in data:
+            problem, tier = "perpetual_motion", IDOTier.TIER3_OPEN
+        elif "hot" in data and "cold" in data:
+            problem, tier = "hot_cold_paradox", IDOTier.TIER3_OPEN
+        elif "floating" in data or "hovering" in data:
+            problem, tier = "physical_grounding", IDOTier.TIER3_OPEN
+        else:
+            problem, tier = "general_world_model", IDOTier.TIER2_AXIOMATIC
+
+        return IDOHypothesis(
+            id=f"ido_{hypothesis.id}",
+            problem=problem,
+            description=hypothesis.data,
+            tier=tier,
+            i_support=i_val,
+            asym=abs(conf - 0.5) * 0.1 if 0.4 < conf < 0.6 else 0.0,
+            evidence=evidence,
+            metadata={"sai_source": hypothesis.source.value, "sai_confidence": conf},
+        )
+
+    def audit_sai_outputs(self, hypotheses: List[Hypothesis]) -> List[Dict[str, Any]]:
+        """审计 SAI 世界模型输出"""
+        results = []
+        for h in hypotheses:
+            ido_h = self.sai_to_ido(h)
+            if ido_h and self._ido_auditor:
+                assessment = self._ido_auditor.audit(ido_h)
+                results.append({
+                    "sai_hypothesis": h.data,
+                    "sai_confidence": h.confidence,
+                    "ido_tier": assessment.tier.value,
+                    "tomas_status": assessment.tomas_status,
+                    "next_action": assessment.next_action,
+                })
+            elif self.auditor:
+                # 回退到标准 T-Proc
+                result = self.auditor.audit(h)
+                results.append({
+                    "sai_hypothesis": h.data,
+                    "sai_confidence": h.confidence,
+                    "tomas_status": result.status.value,
+                    "reason": result.reason,
+                })
+        return results
