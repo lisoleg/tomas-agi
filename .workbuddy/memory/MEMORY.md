@@ -55,6 +55,10 @@
 - `tshield_wrapper.py` — **T-Shield 认知安全层（DZ Grafting/MUS Dual-Box/κ-Snap Scheduling + 向量化优化 + batch/profile/config，2026-06-17）**
 - `processor_tshield_integration.py` — **T-Processor + T-Shield 联合推理集成类（2026-06-17）**
 - `tshield_zynq_arch.md` — **T-Shield Zynq-7000 架构设计文档（PS/PL分区/AXI接口/RTL模块/资源估算，2026-06-17）**
+- `tomas_dashboard_arch.md` — **Dashboard 架构设计文档（组件树/路由/API/状态管理，2026-06-17）**
+- `g_ego.py` — **G_ego 双向算子引擎（Afferent/Efferent DMN 映射 + T-Shield 监控，2026-06-17）**
+- `epiplexity_engine.py` — **认知复杂度引擎（E=H+D+C + 八元数 + 信息瓶颈，2026-06-17）**
+- `eml_semzip.py` — **EML 5 阶段语义压缩（DZ→Lite→MaoRui→κ-Snap→ANS，2026-06-17）**
 
 ## 全新独立 Web UI (tomas-dashboard/)
 - `tomas-dashboard/index.html` — **交互式设计稿（1943行，9页面，深色主题，SVG仪表盘，3D预览，2026-06-17）**
@@ -89,7 +93,7 @@
 
 ## 测试
 - 前端: `deepseek-chat/src/test/` — Vitest + RTL，17/17 通过
-- 后端: `tomas_agi/tests/` — pytest，**557 passed + 2 skipped（需要 API Key），0 failed**
+- 后端: `tomas_agi/tests/` — pytest，**617 passed + 2 skipped（需要 API Key），0 failed**
   - `test_token_bridge.py`: 8 passed
   - `test_eml_dimred.py`: 20 passed
   - `test_router.py`: 27 passed
@@ -101,8 +105,12 @@
   - `test_hyworld_sai.py`: 76 passed
   - `test_ido.py`: 105 passed
   - `test_fde_dual_itot.py`: 86 passed
+  - `test_tprocessor_tshield.py`: 39 passed (T-Processor + T-Shield 联合测试)
   - DIKWP/AC 测试: 54 passed
-- Python 测试: 系统 Python 3.10 + pytest
+  - `test_new_modules.py`: 21 passed (G_ego/Epiplexity/EMLSemZip 新模块, 2026-06-17)
+  - `test_adc.py`: 14 passed (ADC 审计)
+  - 其他: 23 passed
+- Python 测试: venv Python 3.13 + pytest (从 `tomas_agi/` 上级目录运行)
 
 ## 前端功能模块 (deepseek-chat/)
 - **仪表盘 (Dashboard)**: 8 子系统状态卡片 + 活动时间线 + 面板跳转
