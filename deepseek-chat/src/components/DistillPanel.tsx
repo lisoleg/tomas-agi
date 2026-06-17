@@ -24,6 +24,83 @@ import { EMLGraphVisualization } from './EMLGraphVisualization'
 import { DIKWPPieChart, type DIKWPLayerInfo } from './DIKWPPieChart'
 import { useToast } from './Toast'
 
+// ──────────────────────────────────────────────
+// 📦 数据缓存层 — localStorage + TTL + 预加载
+// ──────────────────────────────────────────────
+const GRAPH_CACHE_KEY = 'tomas_graph_cache_v2'
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 分钟
+
+interface GraphCachePayload {
+  data: EMLGraphData
+  timestamp: number
+  source: 'api' | 'distill' | 'upload'
+}
+
+/** 从 localStorage 读取缓存（带 TTL 检查） */
+function readGraphCache(): EMLGraphData | null {
+  try {
+    const raw = localStorage.getItem(GRAPH_CACHE_KEY)
+    if (!raw) return null
+    const payload: GraphCachePayload = JSON.parse(raw)
+    if (Date.now() - payload.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(GRAPH_CACHE_KEY)
+      return null
+    }
+    return payload.data
+  } catch {
+    return null
+  }
+}
+
+/** 写入缓存 */
+function writeGraphCache(data: EMLGraphData, source: GraphCachePayload['source']): void {
+  try {
+    localStorage.setItem(GRAPH_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), source }))
+  } catch {
+    /* storage full / private browsing — silently ignore */
+  }
+}
+
+/** 清除缓存 */
+function clearGraphCache(): void {
+  try { localStorage.removeItem(GRAPH_CACHE_KEY) } catch {}
+}
+
+/** Flask 健康检查（快速失败，不等待超时） */
+async function checkFlaskHealth(): Promise<boolean> {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2000) // 2s 超时
+    const res = await fetch('http://localhost:5000/api/health', {
+      signal: ctrl.signal,
+      mode: 'cors',
+    })
+    clearTimeout(timer)
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/** 带重试的 fetch（指数退避，最多 3 次） */
+async function retryFetch(url: string, maxRetries = 3): Promise<Response | null> {
+  let lastErr: Error | null = null
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (res.ok) return res
+      if (res.status >= 400 && res.status < 500) break // 客户端错误不重试
+      lastErr = new Error(`HTTP ${res.status}`)
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err))
+    }
+    if (attempt < maxRetries - 1) {
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt))) // 500ms → 1000ms
+    }
+  }
+  return null
+}
+
 interface DistillPanelProps {
   /** DeepSeek API Key */
   apiKey: string
@@ -248,95 +325,187 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
   // 数据加载状态
   const [dataLoading, setDataLoading] = useState(true)
   const [dataError, setDataError] = useState<string | null>(null)
-  // ⚠️ 注意：useToast() 已在上方调用，此处不再重复  
-  // 加载知识条目和语料条目
+  const [dataSource, setDataSource] = useState<string>('') // 'cache' | 'api' | 'fallback' | ''
+  // ⚠️ 注意：useToast() 已在上方调用，此处不再重复
+
+  // ── 自动缓存写入：graphData 变化时自动持久化（避免到处写 writeGraphCache）──
+  const prevGraphDataRef = useRef<EMLGraphData | null>(null)
+  useEffect(() => {
+    // 跳过：从 cache 恢复时不需要回写（避免 TTL 被重置）
+    // 只在真正有新数据（非 cache 来源）时写入
+    if (graphData && graphData !== prevGraphDataRef.current && dataSource !== 'cache') {
+      // 避免首次 mount 时把 fallback 数据覆盖到已有缓存
+      if (dataSource || graphData.vertices.length > 15) {
+        writeGraphCache(graphData, dataSource as GraphCachePayload['source'] || 'distill')
+        prevGraphDataRef.current = graphData
+      }
+    }
+  }, [graphData, dataSource])
+
+  /**
+   * 📦 三级数据加载策略（带缓存 + 预加载 + 降级）
+   *
+   * Level 1 (即时): localStorage 缓存 — 0ms 显示
+   * Level 2 (后台): Flask API       — 静默刷新缓存
+   * Level 3 (兜底): 内置示例数据    — 离线/API 挂了也不空白
+   */
   useEffect(() => {
     async function loadData() {
-      console.log('[DistillPanel] === 开始加载数据 (2024-06-14 v2) ===')
+      console.log('[DistillPanel] === 开始加载数据 (v3 缓存+预加载) ===')
+      const startTime = Date.now()
+
       try {
         setDataLoading(true)
         setDataError(null)
 
-        const items = await getAllKnowledgeItems()
-        setKnowledgeItems(items)
+        // ══════════════════════════════════════
+        // Level 1: 瞬间从缓存恢复（0ms）
+        // ══════════════════════════════════════
+        const cached = readGraphCache()
+        if (cached && cached.vertices.length > 0) {
+          console.log(`[DistillPanel] ⚡ 缓存命中: ${cached.vertices.length} 顶点, ${cached.edges.length} 边`)
+          setGraphData(cached)
+          setGraphFromAPI(true)
+          setDataSource('cache')
+          // 不等 API，先让用户看到数据（关键！）
+        }
 
-        const entries = await getAllCorpusEntries()
-        setCorpusEntries(entries)
-
-        // ── 同时加载图谱数据（从后端三元组构建）──
-        // 这样用户点击"知识浏览"中的概念时就能直接显示邻域子图
+        // ── 加载知识/语料条目（轻量，不阻塞）──
+        let items: KnowledgeItem[] = []
+        let entries: CorpusEntry[] = []
         try {
-          const graphRes = await fetch('http://localhost:5000/api/knowledge/graph?limit=5000')
-          console.log('[DistillPanel] 图谱API状态:', graphRes.status, graphRes.ok)
-          if (graphRes.ok) {
-            const graphJson = await graphRes.json()
-            console.log('[DistillPanel] 图谱API返回:', JSON.stringify(graphJson).slice(0, 300))
-            if (graphJson.success && graphJson.triples.length > 0) {
-              const conceptSet = new Set<string>(graphJson.concepts as string[])
-              // 确保 triples 中的 subject/object 都在 concept 集合中
-              for (const t of graphJson.triples as any[]) {
-                conceptSet.add(t.subject)
-                if (t.object && !/^\d+(\.\d+)?$/.test(t.object) && t.object.length < 100) {
-                  conceptSet.add(t.object)
+          items = await getAllKnowledgeItems()
+          setKnowledgeItems(items)
+          entries = await getAllCorpusEntries()
+          setCorpusEntries(entries)
+        } catch (storeErr) {
+          console.warn('[DistillPanel] 知识/语料加载失败（非致命）:', storeErr)
+        }
+
+        // ══════════════════════════════════════
+        // Level 2: 后台静默拉取 API 最新数据
+        // ══════════════════════════════════════
+        const isFlaskAlive = await checkFlaskHealth()
+        console.log('[DistillPanel] Flask 健康检查:', isFlaskAlive ? '✅ 在线' : '❌ 离线')
+
+        if (isFlaskAlive) {
+          try {
+            const graphRes = await retryFetch('http://localhost:5000/api/knowledge/graph?limit=5000')
+            if (graphRes) {
+              const graphJson = await graphRes.json()
+              if (graphJson.success && graphJson.triples.length > 0) {
+                const conceptSet = new Set<string>(graphJson.concepts as string[])
+                for (const t of graphJson.triples as any[]) {
+                  conceptSet.add(t.subject)
+                  if (t.object && !/^\d+(\.\d+)?$/.test(t.object) && t.object.length < 100) {
+                    conceptSet.add(t.object)
+                  }
                 }
-              }
-              const conceptList = Array.from(conceptSet) as string[]
-              const nameToId = new Map<string, number>()
-              conceptList.forEach((name, i) => nameToId.set(name, i))
+                const conceptList = Array.from(conceptSet) as string[]
+                const nameToId = new Map<string, number>()
+                conceptList.forEach((name, i) => nameToId.set(name, i))
 
-              const vertices = conceptList.map((name, i) => ({
-                id: i,
-                label: name,
-                delta: Math.random() * 0.3 + 0.05,  // 后端暂无 delta，用小随机值占位
-                info_existence: 0.5,
-                corpusName: undefined
-              }))
-
-              const edges = (graphJson.triples as any[])
-                .filter((t: any) => nameToId.has(t.subject) && nameToId.has(t.object))
-                .map((t: any) => ({
-                  src: nameToId.get(t.subject)!,
-                  dst: nameToId.get(t.object)!,
-                  weight: 0.3 + Math.random() * 0.4,  // 后端暂无权重，随机生成
-                  associator_flag: 0
-                }))
-
-              setGraphData({ vertices, edges })
-              // 标记图谱来自 API（非 EML 文件），默认全量显示
-              setGraphFromAPI(true)
-              console.log(`[DistillPanel] 图谱已加载: ${vertices.length} 顶点, ${edges.length} 边`)
-            } else {
-              // 三元组为空，但仍需构建最小图谱（仅顶点，无边），使知识列表点击可用
-              const conceptItems = items.filter(i => i.type === 'concept')
-              const conceptNames = conceptItems.map(i => i.label).filter(Boolean)
-              if (conceptNames.length > 0) {
-              const vertices = conceptNames.map((name: string, i: number) => ({
+                const vertices = conceptList.map((name, i) => ({
                   id: i,
                   label: name,
                   delta: Math.random() * 0.3 + 0.05,
-                  info_existence: 0.5,
+                  info_existence: 0.5 + Math.random() * 0.4,
                   corpusName: undefined
                 }))
-                setGraphData({ vertices, edges: [] })
+
+                const edges = (graphJson.triples as any[])
+                  .filter((t: any) => nameToId.has(t.subject) && nameToId.has(t.object))
+                  .map((t: any) => ({
+                    src: nameToId.get(t.subject)!,
+                    dst: nameToId.get(t.object)!,
+                    weight: 0.2 + Math.random() * 0.6,
+                    associator_flag: 0
+                  }))
+
+                const freshData = { vertices, edges }
+                // 更新状态 + 写入缓存
+                setGraphData(freshData)
                 setGraphFromAPI(true)
-                console.log(`[DistillPanel] 无三元组，但构建了最小图谱: ${vertices.length} 顶点`)
-              } else {
-                console.log('[DistillPanel] 图谱数据为空（triples=0 且无知识条目），graphData 保持 null')
+                setDataSource('api')
+                writeGraphCache(freshData, 'api')
+                console.log(`[DistillPanel] ✅ API 数据已加载: ${vertices.length} 顶点, ${edges.length} 边 (耗时 ${Date.now() - startTime}ms)`)
+
+                setDataLoading(false)
+                return // 成功路径结束
               }
             }
+            console.warn('[DistillPanel] API 返回空数据')
+          } catch (apiErr) {
+            console.warn('[DistillPanel] API 加载失败:', apiErr)
           }
-        } catch (graphErr) {
-          // 图谱加载失败不影响主功能（知识列表仍可用）
-          console.warn('[DistillPanel] 图谱数据加载失败（非致命）:', graphErr)
+        }
+
+        // ══════════════════════════════════════
+        // Level 3: 降级 — 如果有缓存就保持，否则用示例数据
+        // ══════════════════════════════════════
+        if (cached && cached.vertices.length > 0) {
+          // 缓存还在用着，标记为离线模式
+          setDataSource('cache')
+          console.log('[DistillPanel] 🔶 使用缓存数据（Flask 离线或 API 失败）')
+        } else if (items.length > 0) {
+          // 从知识条目构建最小图谱
+          const conceptNames = items.map(i => i.label).filter(Boolean)
+          const vertices = conceptNames.map((name, i) => ({
+            id: i, label: name, delta: 0.1 + Math.random() * 0.3,
+            info_existence: 0.5, corpusName: undefined
+          }))
+          const fbData = { vertices, edges: [] }
+          setGraphData(fbData)
+          setGraphFromAPI(false)
+          setDataSource('fallback')
+          writeGraphCache(fbData, 'distill')
+          console.log(`[DistillPanel] 🔶 从知识条目构建降级图谱: ${vertices.length} 顶点`)
+        } else {
+          // 最终兜底：内置 TOMAS 示例概念集
+          const fallbackVertices = [
+            { id: 0, label: 'TOMAS', delta: 0.85, info_existence: 0.9, corpusName: undefined },
+            { id: 1, label: 'Token Bridge', delta: 0.72, info_existence: 0.8, corpusName: undefined },
+            { id: 2, label: 'EML 超图', delta: 0.68, info_existence: 0.75, corpusName: undefined },
+            { id: 3, label: 'G_ego 双向算子', delta: 0.55, info_existence: 0.7, corpusName: undefined },
+            { id: 4, label: 'Epiplexity 引擎', delta: 0.48, info_existence: 0.65, corpusName: undefined },
+            { id: 5, label: 'EML-SemZip', delta: 0.42, info_existence: 0.6, corpusName: undefined },
+            { id: 6, label: 'T-Processor', delta: 0.38, info_existence: 0.55, corpusName: undefined },
+            { id: 7, label: 'T-Shield', delta: 0.35, info_existence: 0.5, corpusName: undefined },
+            { id: 8, label: 'Dead-Zero 剪枝', delta: 0.30, info_existence: 0.45, corpusName: undefined },
+            { id: 9, label: 'MUS 稳态', delta: 0.28, info_existence: 0.42, corpusName: undefined },
+            { id: 10, label: 'κ-Snap 调度', delta: 0.25, info_existence: 0.40, corpusName: undefined },
+            { id: 11, label: 'DIKWP 五层映射', delta: 0.45, info_existence: 0.62, corpusName: undefined },
+            { id: 12, label: 'MemOS 融合层', delta: 0.40, info_existence: 0.58, corpusName: undefined },
+          ]
+          const fallbackEdges = [
+            { src: 0, dst: 1, weight: 0.9, associator_flag: 0 },  // TOMAS → Token Bridge
+            { src: 0, dst: 2, weight: 0.85, associator_flag: 0 }, // TOMAS → EML
+            { src: 1, dst: 3, weight: 0.7, associator_flag: 0 },  // Token Bridge → G_ego
+            { src: 1, dst: 4, weight: 0.65, associator_flag: 0 }, // Token Bridge → Epiplexity
+            { src: 2, dst: 5, weight: 0.75, associator_flag: 0 }, // EML → SemZip
+            { src: 3, dst: 6, weight: 0.6, associator_flag: 0 },  // G_ego → T-Processor
+            { src: 3, dst: 7, weight: 0.7, associator_flag: 0 },  // G_ego → T-Shield
+            { src: 7, dst: 8, weight: 0.8, associator_flag: 0 },  // T-Shield → Dead-Zero
+            { src: 7, dst: 9, weight: 0.75, associator_flag: 0 }, // T-Shield → MUS
+            { src: 7, dst: 10, weight: 0.55, associator_flag: 0 },// T-Shield → κ-Snap
+            { src: 0, dst: 11, weight: 0.5, associator_flag: 0 }, // TOMAS → DIKWP
+            { src: 11, dst: 12, weight: 0.6, associator_flag: 0 },// DIKWP → MemOS
+            { src: 12, dst: 3, weight: 0.45, associator_flag: 0 },// MemOS → G_ego
+          ]
+          const fbData = { vertices: fallbackVertices, edges: fallbackEdges }
+          setGraphData(fbData)
+          setGraphFromAPI(false)
+          setDataSource('fallback')
+          console.log('[DistillPanel] 🔶 使用内置示例数据（完全离线模式）')
         }
 
       } catch (err) {
         const message = err instanceof Error ? err.message : '加载数据失败'
         setDataError(message)
         console.error('加载数据失败:', err)
-        toast.error(`加载数据失败：${message}，请检查后端服务器（http://localhost:5000）`)
       } finally {
         setDataLoading(false)
+        console.log(`[DistillPanel] 总耗时: ${Date.now() - startTime}ms, source=${dataSource || 'unknown'}`)
       }
     }
     loadData()
@@ -1207,29 +1376,48 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           </div>
         )}
 
-        {/* 统计卡片 — 始终可见 */}
-        <div className="flex items-center gap-2 text-xs text-textSecondary">
+        {/* 统计卡片 — 始终可见，优先使用 graphData（缓存/API） */}
+        <div className="flex items-center gap-2 text-xs text-textSecondary flex-wrap">
           <span className="font-medium">
-            {bridgeState.loaded ? '📊 知识库统计' : phase === 'done' ? '📊 蒸馏统计' : '📊 知识库统计'}
+            📊 {bridgeState.loaded ? '知识库统计' : phase === 'done' ? '蒸馏统计' : '知识图谱'}
           </span>
+          {/* 数据来源标签 */}
+          {!bridgeState.loaded && phase !== 'done' && graphData && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              dataSource === 'api' ? 'bg-emerald-600/20 text-emerald-300' :
+              dataSource === 'cache' ? 'bg-amber-600/20 text-amber-300' :
+              'bg-violet-600/20 text-violet-300'
+            }`}>
+              {dataSource === 'api' ? '🔗 API 实时' : dataSource === 'cache' ? '⚡ 缓存' : '📦 示例数据'}
+            </span>
+          )}
           {bridgeState.loaded && (
             <span className="text-textSecondary/60">{bridgeState.fileName}</span>
           )}
           {!bridgeState.loaded && phase === 'done' && (
             <span className="text-textSecondary/60">蒸馏结果</span>
           )}
-          {!bridgeState.loaded && phase !== 'done' && (
-            <span className="text-textSecondary/40">等待加载…</span>
+          {dataLoading && !graphData && (
+            <span className="text-textSecondary/40 animate-pulse">加载中…</span>
+          )}
+          {!dataLoading && !graphData && !bridgeState.loaded && phase !== 'done' && (
+            <span className="text-textSecondary/40">无数据</span>
           )}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <StatCard
             label="概念数"
-            value={bridgeState.loaded ? String(bridgeState.vertexCount) : phase === 'done' ? String(concepts.length) : '—'}
+            value={graphData
+              ? String(graphData.vertices.length)
+              : bridgeState.loaded ? String(bridgeState.vertexCount)
+                : phase === 'done' ? String(concepts.length) : '—'}
           />
           <StatCard
             label="关系数"
-            value={bridgeState.loaded ? String(bridgeState.edgeCount) : phase === 'done' ? String(relations.length) : '—'}
+            value={graphData
+              ? String(graphData.edges.length)
+              : bridgeState.loaded ? String(bridgeState.edgeCount)
+                : phase === 'done' ? String(relations.length) : '—'}
           />
           <StatCard
             label="语料条数 ▾"
@@ -1239,13 +1427,66 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           />
           <StatCard
             label="𝕀 均值"
-            value={bridgeState.loaded ? bridgeState.avgDelta.toFixed(3) : phase === 'done' ? avgInfoExistence.toFixed(3) : '—'}
+            value={graphData && graphData.vertices.length > 0
+              ? (graphData.vertices.reduce((s, v) => s + (v.delta || 0), 0) / graphData.vertices.length).toFixed(3)
+              : bridgeState.loaded ? bridgeState.avgDelta.toFixed(3)
+                : phase === 'done' ? avgInfoExistence.toFixed(3) : '—'}
           />
           <StatCard
             label="EML 大小"
             value={bridgeState.loaded ? formatFileSize(bridgeState.fileSize) : phase === 'done' ? formatFileSize(emlSize) : '—'}
           />
         </div>
+
+        {/* DIKWP 迷你分布 — 当有 graphData 时始终显示在统计卡片下方 */}
+        {graphData && graphData.edges.length > 0 && (
+          (() => {
+            const iValues = graphData.edges.map(e => (e as any).delta ?? e.weight).filter((v: number) => !isNaN(v))
+            if (iValues.length === 0) return null
+            const bins = { D: 0, I: 0, K: 0, W: 0, P: 0 }
+            const binDefs = { D: [0, 0.15], I: [0.15, 0.35], K: [0.35, 0.65], W: [0.65, 0.85], P: [0.85, 1.0] } as const
+            for (const v of iValues) {
+              for (const [layer, [lo, hi]] of Object.entries(binDefs)) {
+                if (v >= lo && (v < hi || (layer === 'P' && v >= hi))) { bins[layer as keyof typeof bins]++; break }
+              }
+            }
+            const total = Math.max(iValues.length, 1)
+            const layers = ['D', 'I', 'K', 'W', 'P'] as const
+            const names: Record<string, string> = { D: '数据', I: '信息', K: '知识', W: '智慧', P: '目的' }
+            const colors: Record<string, string> = { D: '#ef4444', I: '#f97316', K: '#eab308', W: '#22c55e', P: '#3b82f6' }
+            // 简单 SVG 迷你条形图
+            const maxCount = Math.max(...Object.values(bins), 1)
+            return (
+              <div className="border border-white/10 rounded-lg p-2.5 bg-violet-900/5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-medium text-violet-300">🔮 DIKWP 层分布</span>
+                  <span className="text-[10px] text-textSecondary">{iValues.length} 条关系</span>
+                </div>
+                <div className="flex items-end gap-1 h-8">
+                  {layers.map(layer => {
+                    const pct = bins[layer] / total * 100
+                    const barH = Math.max((bins[layer] / maxCount) * 100, 2)
+                    return (
+                      <div key={layer} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div
+                          className="w-full rounded-t-sm transition-all duration-300 hover:opacity-80"
+                          style={{ height: `${barH}%`, backgroundColor: colors[layer], minHeight: '4px' }}
+                          title={`${names[layer]}: ${bins[layer]} (${pct.toFixed(1)}%)`}
+                        />
+                        <span className="text-[9px] leading-none text-textSecondary">{layer}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-around mt-1 text-[9px] text-textSecondary">
+                  {layers.map(layer => (
+                    <span key={layer}>{bins[layer]}</span>
+                  ))}
+                </div>
+              </div>
+            )
+          })()
+        )}
 
         {/* ==================== 概念列表（独立区域）==================== */}
         <div className="border border-white/10 rounded-lg overflow-hidden">
@@ -1764,58 +2005,76 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                   </div>
                 )}
 
-                {/* 知识浏览 Tab */}
-                {activeTab === 'knowledge' && bridgeState.graph && (
+                {/* 知识浏览 Tab — graphData 或 bridgeState 均可触发 */}
+                {activeTab === 'knowledge' && (bridgeState.graph || graphData) && (
                   <KnowledgeBrowser
-                    graph={bridgeState.graph}
+                    graph={bridgeState.graph || graphData!}
                     conceptNames={concepts.length > 0 ? ((): Map<number, string> => {
                       const m = new Map<number, string>()
                       concepts.forEach((c, i) => m.set(i, c.concept))
                       return m
                     })() : undefined}
                     onGraphUpdated={async (newGraph) => {
-                      const buffer = serializeEML(newGraph)
-                      const conceptNames = new Map<number, string>()
-                      newGraph.vertices.forEach(v => conceptNames.set(v.id, v.label))
-                      bridgeClient.current.loadEML(newGraph, conceptNames)
-                      const avgDelta = newGraph.vertices.length > 0
-                        ? newGraph.vertices.reduce((s, v) => s + v.delta, 0) / newGraph.vertices.length
-                        : 0
-                      setBridgeState({
-                        loaded: true,
-                        graph: newGraph,
-                        fileName: bridgeState.fileName,
-                        fileSize: buffer.byteLength,
-                        vertexCount: newGraph.vertices.length,
-                        edgeCount: newGraph.edges.length,
-                        avgDelta
-                      })
-                      // 用真实概念名替换占位符（删除操作不改变领域信息）
-                      let vizGraph = extractGraphForVisualization(buffer)
-                      if (vizGraph && concepts.length > 0) {
-                        const nameMap = new Map<number, string>()
-                        concepts.forEach((c, i) => nameMap.set(i, c.concept))
-                        vizGraph.vertices.forEach(v => {
-                          const realName = nameMap.get(v.id)
-                          if (realName) v.label = realName
-                          // 保留已有的 corpusName 标记
+                      // 如果原本是 bridgeState 模式，同步更新 bridgeState
+                      if (bridgeState.loaded) {
+                        const buffer = serializeEML(newGraph)
+                        const conceptNames = new Map<number, string>()
+                        newGraph.vertices.forEach(v => conceptNames.set(v.id, v.label))
+                        bridgeClient.current.loadEML(newGraph, conceptNames)
+                        const avgDelta = newGraph.vertices.length > 0
+                          ? newGraph.vertices.reduce((s, v) => s + v.delta, 0) / newGraph.vertices.length
+                          : 0
+                        setBridgeState({
+                          loaded: true,
+                          graph: newGraph,
+                          fileName: bridgeState.fileName,
+                          fileSize: buffer.byteLength,
+                          vertexCount: newGraph.vertices.length,
+                          edgeCount: newGraph.edges.length,
+                          avgDelta
                         })
+                        let vizGraph = extractGraphForVisualization(buffer)
+                        if (vizGraph && concepts.length > 0) {
+                          const nameMap = new Map<number, string>()
+                          concepts.forEach((c, i) => nameMap.set(i, c.concept))
+                          vizGraph.vertices.forEach(v => {
+                            const realName = nameMap.get(v.id)
+                            if (realName) v.label = realName
+                          })
+                        }
+                        if (vizGraph) { setGraphData(vizGraph); setGraphFromAPI(false) }
+                      } else {
+                        // graphData 模式（缓存/API/降级）：直接更新 graphData + 缓存
+                        setGraphData(newGraph)
+                        writeGraphCache(newGraph, 'api')
                       }
-                      if (vizGraph) { setGraphData(vizGraph); setGraphFromAPI(false) }
                     }}
                   />
                 )}
-              </div>
-            )}
 
-            {/* 未加载提示 */}
-            {!bridgeState.loaded && (
-              <div className="text-center py-4 text-sm text-textSecondary">
-                {phase === 'done'
-                  ? '👆 点击「加载当前蒸馏结果」或上传 .eml 文件开始推理'
-                  : '👆 先蒸馏语料或上传 .eml 文件，即可在此进行本地概念搜索'}
-              </div>
-            )}
+                {/* 空状态提示 — 仅在确实无数据时显示 */}
+                {activeTab === 'knowledge' && !bridgeState.graph && !graphData && !dataLoading && (
+                  <div className="text-center py-8 space-y-3">
+                    <div className="text-4xl opacity-30">📭</div>
+                    <div className="text-sm text-textSecondary">
+                      {phase === 'done'
+                        ? '👆 点击「加载当前蒸馏结果」开始浏览'
+                        : '👆 蒸馏语料或上传 .eml 文件后即可浏览概念与关系'}
+                    </div>
+                    <div className="text-xs text-textSecondary/50">
+                      也可等待从后端数据库自动加载知识图谱…
+                    </div>
+                  </div>
+                )}
+
+                {/* 加载中骨架屏 */}
+                {activeTab === 'knowledge' && dataLoading && !bridgeState.graph && !graphData && (
+                  <div className="space-y-3 p-4">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="h-10 rounded bg-white/5 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                    ))}
+                  </div>
+                )}
           </div>
         </div>
       </div>
