@@ -20,6 +20,11 @@ import type { ChatEMLState, ConceptSearchResult, DistillConcept, DistillPhase, D
 import type { MergeSummary } from '../api/distiller'
 import { getAllKnowledgeItems, saveKnowledgeItems, type KnowledgeItem } from '../api/knowledgeStore'
 import { deleteCorpusEntry, getAllCorpusEntries, saveCorpusEntry, saveConflictDecision, type CorpusEntry, type ConflictDecision } from '../api/corpusStore'
+import { 
+  loadFromCacheOrAPI, 
+  saveGraphToCache, 
+  type CachedGraphData 
+} from '../api/distillCache'
 import { EMLGraphVisualization } from './EMLGraphVisualization'
 import { DIKWPPieChart, type DIKWPLayerInfo } from './DIKWPPieChart'
 import { useToast } from './Toast'
@@ -544,6 +549,48 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
   const isDragging = useRef(false)
   const startY = useRef(0)
   const startHeight = useRef(0)
+
+  // 三级缓存数据加载：缓存 → API → 兜底
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInitialData() {
+      try {
+        console.log('[DistillPanel] 尝试从缓存/API加载初始数据...')
+        const { data, source } = await loadFromCacheOrAPI(200, 1.0)
+        
+        if (cancelled) return
+        
+        if (data && data.concepts.length > 0) {
+          // 转换为 graphData 格式
+          const vertices = data.concepts.map((c: any, i: number) => ({
+            id: i,
+            label: c.label || `v${i}`,
+            delta: Math.random() * 0.3 + 0.05,
+            info_existence: c.iWeight || 1.0,
+            corpusName: undefined as string | undefined
+          }))
+          
+          const edges = data.relations.map((r: any, i: number) => ({
+            src: r.source || 0,
+            dst: r.target || 0,
+            weight: r.iWeight || 0.5,
+            associator_flag: 0
+          }))
+          
+          setGraphData({ vertices, edges })
+          setGraphFromAPI(true)
+          console.log(`[DistillPanel] 已从 ${source} 加载数据:`, vertices.length, '顶点,', edges.length, '边')
+        }
+      } catch (e) {
+        console.warn('[DistillPanel] 初始数据加载失败:', e)
+      }
+    }
+
+    loadInitialData()
+
+    return () => { cancelled = true }
+  }, [])  // 仅在组件挂载时执行一次
 
   /** 处理冲突决策 */
   const handleConflictDecision = useCallback((conflictId: string, conflict: KnowledgeConflict, decision: string) => {

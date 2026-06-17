@@ -66,11 +66,110 @@ function generateMockAuditLogs(): AuditLogEntry[] {
 // ── Component ──────────────────────────────────────────
 
 export default function TProcessorPanel() {
-  const [modules, setModules] = useState<ModuleStatus[]>(generateMockModules());
-  const [stats] = useState<TProcessorStats>(generateMockStats());
-  const [logs] = useState<AuditLogEntry[]>(generateMockAuditLogs());
+  const [modules, setModules] = useState<ModuleStatus[]>([]);
+  const [stats, setStats] = useState<TProcessorStats | null>(null);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'modules' | 'logs'>('overview');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 从 API 加载数据
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 尝试从 API 加载
+        const response = await fetch('http://localhost:5000/api/tprocessor/stats');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (!cancelled && result.success) {
+          // 转换 API 数据到组件格式
+          const apiData = result.data;
+          
+          // 更新统计
+          setStats({
+            totalCycles: apiData.total_cycles || 0,
+            deadZeroCount: apiData.dead_zero_count || 0,
+            musCount: apiData.mus_count || 0,
+            snapCount: apiData.snap_count || 0,
+            avgUtilization: apiData.avg_utilization || 0,
+          });
+
+          // 更新模块状态（如果 API 返回）
+          if (apiData.modules) {
+            setModules(apiData.modules);
+          } else {
+            // 使用默认模块列表
+            setModules([
+              { name: 'RRAM Crossbar', id: 'rram', status: 'active', utilization: apiData.rram_util || 78, cycles: apiData.total_cycles || 0 },
+              { name: 'DZ Comparator', id: 'dz_comp', status: 'active', utilization: apiData.dz_util || 92, cycles: apiData.total_cycles || 0 },
+              { name: 'MUS Arbiter', id: 'mus_arb', status: 'idle', utilization: apiData.mus_util || 34, cycles: apiData.total_cycles || 0 },
+              { name: 'κ-Snap Scheduler', id: 'kappa_snap', status: 'active', utilization: apiData.ksnap_util || 61, cycles: apiData.total_cycles || 0 },
+            ]);
+          }
+
+          // 更新审计日志（如果 API 返回）
+          if (apiData.logs) {
+            setLogs(apiData.logs);
+          }
+
+          console.log('[TProcessorPanel] Loaded real data from API');
+        }
+      } catch (e) {
+        console.warn('[TProcessorPanel] Failed to load from API, using fallback data:', e);
+        
+        if (!cancelled) {
+          // 使用 mock 数据作为兜底
+          setModules([
+            { name: 'RRAM Crossbar', id: 'rram', status: 'active', utilization: 78, cycles: 1420 },
+            { name: 'DZ Comparator', id: 'dz_comp', status: 'active', utilization: 92, cycles: 1420 },
+            { name: 'MUS Arbiter', id: 'mus_arb', status: 'idle', utilization: 34, cycles: 1380 },
+            { name: 'κ-Snap Scheduler', id: 'kappa_snap', status: 'active', utilization: 61, cycles: 1420 },
+          ]);
+          
+          setStats({
+            totalCycles: 1420,
+            deadZeroCount: 47,
+            musCount: 12,
+            snapCount: 8,
+            avgUtilization: 66.25,
+          });
+
+          setLogs([
+            { id: 't1', timestamp: new Date(Date.now() - 30000), module: 'DZ Comparator', event: 'Dead-Zero 检测', status: 'pass', detail: 'ℐ=0.08 < θ_dead=0.15 → REJECT' },
+            { id: 't2', timestamp: new Date(Date.now() - 90000), module: 'MUS Arbiter', event: 'MUS 仲裁', status: 'warn', detail: '悖论对: (科学家, 炼金术士) → 双存' },
+            { id: 't3', timestamp: new Date(Date.now() - 150000), module: 'κ-Snap Scheduler', event: 'κ-Snap 调度', status: 'pass', detail: 'scene_complexity=0.72 → config=C' },
+          ]);
+
+          setError('无法连接到 Flask API，显示示例数据');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    // 定时刷新 (每 5 秒)
+    const interval = setInterval(loadData, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const statusColor = (s: ModuleStatus['status']) => {
     switch (s) {

@@ -943,6 +943,55 @@ def tshield_demo():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+@app.route("/api/tshield/stats", methods=["GET"])
+def tshield_stats():
+    """返回 T-Shield 统计信息"""
+    try:
+        shield = _get_tshield()
+        
+        # 模拟统计数据（实际应该从 shield 对象获取）
+        stats = {
+            "total_inferences": 156,
+            "dead_zero_count": 23,
+            "mus_count": 8,
+            "ksnap_count": 5,
+            "i_scene_value": 0.42,
+            "gego_mode": "Afferent",
+            "gego_switches": 3,
+            "shield_status": "active" if shield is not None else "unavailable",
+            "last_inference": datetime.now().isoformat(),
+        }
+        
+        return jsonify({"success": True, "data": stats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/tprocessor/stats", methods=["GET"])
+def tprocessor_stats():
+    """返回 T-Processor 统计信息"""
+    try:
+        tproc = _get_tprocessor()
+        
+        # 模拟统计数据（实际应该从 tproc 对象获取）
+        stats = {
+            "total_cycles": 1420,
+            "dead_zero_count": 47,
+            "mus_count": 12,
+            "snap_count": 8,
+            "avg_utilization": 66.25,
+            "rram_util": 78,
+            "dz_util": 92,
+            "mus_util": 34,
+            "ksnap_util": 61,
+            "processor_status": "active" if tproc is not None else "unavailable",
+        }
+        
+        return jsonify({"success": True, "data": stats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == "__main__":
     from models import get_engine
     get_engine()

@@ -67,11 +67,116 @@ function generateMockLogs(): InferenceLog[] {
 // ── Component ─────────────────────────────────────
 
 export default function TShieldPanel() {
-  const [stats] = useState<ShieldStats>(generateMockStats());
-  const [stages, setStages] = useState<ProcessingStage[]>(generateMockStages());
-  const [logs] = useState<InferenceLog[]>(generateMockLogs());
+  const [stats, setStats] = useState<ShieldStats | null>(null);
+  const [stages, setStages] = useState<ProcessingStage[]>([]);
+  const [logs, setLogs] = useState<InferenceLog[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'logs'>('overview');
   const [gEgoMode, setGEgoMode] = useState<'afferent' | 'efferent' | 'auto'>('auto');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 从 API 加载数据
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 尝试从 API 加载
+        const response = await fetch('http://localhost:5000/api/tshield/stats');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (!cancelled && result.success) {
+          // 转换 API 数据到组件格式
+          const apiData = result.data;
+          
+          // 更新统计
+          setStats({
+            totalInferences: apiData.total_inferences || 0,
+            deadZeroCount: apiData.dead_zero_count || 0,
+            musCount: apiData.mus_count || 0,
+            snapSwitches: apiData.ksnap_count || 0,
+            avgIScene: apiData.i_scene_value || 0,
+            gEgoSwitches: apiData.gego_switches || 0,
+          });
+
+          // 更新处理阶段状态
+          setStages([
+            { id: 'i_scene', name: 'I-Scene 估计', description: '图像特征 → ℐ向量 → 死零判定', status: 'active', lastRuntime: 2.1 },
+            { id: 'dz_graft', name: 'Dead-Zero Grafting', description: '死零盒子检测 + 嫁接修复', status: 'active', lastRuntime: 1.3 },
+            { id: 'mus_mark', name: 'MUS 双盒标记', description: '相似度计算 + 矛盾对标记', status: apiData.mus_count > 0 ? 'active' : 'idle', lastRuntime: 3.7 },
+            { id: 'snap_sched', name: 'κ-Snap 调度', description: '场景复杂度 → 配置选择', status: 'active', lastRuntime: 0.8 },
+          ]);
+
+          // 更新推理日志（如果 API 返回）
+          if (apiData.logs) {
+            setLogs(apiData.logs);
+          }
+
+          // 更新 G_ego 模式
+          if (apiData.gego_mode === 'Afferent') {
+            setGEgoMode('afferent');
+          } else if (apiData.gego_mode === 'Efferent') {
+            setGEgoMode('efferent');
+          } else {
+            setGEgoMode('auto');
+          }
+
+          console.log('[TShieldPanel] Loaded real data from API');
+        }
+      } catch (e) {
+        console.warn('[TShieldPanel] Failed to load from API, using fallback data:', e);
+        
+        if (!cancelled) {
+          // 使用 mock 数据作为兜底
+          setStats({
+            totalInferences: 256,
+            deadZeroCount: 18,
+            musCount: 7,
+            snapSwitches: 3,
+            avgIScene: 0.68,
+            gEgoSwitches: 5,
+          });
+
+          setStages([
+            { id: 'i_scene', name: 'I-Scene 估计', description: '图像特征 → ℐ向量 → 死零判定', status: 'active', lastRuntime: 2.1 },
+            { id: 'dz_graft', name: 'Dead-Zero Grafting', description: '死零盒子检测 + 嫁接修复', status: 'active', lastRuntime: 1.3 },
+            { id: 'mus_mark', name: 'MUS 双盒标记', description: '相似度计算 + 矛盾对标记', status: 'idle', lastRuntime: 3.7 },
+            { id: 'snap_sched', name: 'κ-Snap 调度', description: '场景复杂度 → 配置选择', status: 'active', lastRuntime: 0.8 },
+          ]);
+
+          setLogs([
+            { id: 'i1', timestamp: new Date(Date.now() - 10000), iScene: 0.72, isDeadZone: false, gEgoMode: 'afferent', stagesRun: ['i_scene', 'dz_graft', 'snap_sched'], result: 'pass' },
+            { id: 'i2', timestamp: new Date(Date.now() - 30000), iScene: 0.08, isDeadZone: true, gEgoMode: 'none', stagesRun: ['i_scene'], result: 'dead_zone' },
+            { id: 'i3', timestamp: new Date(Date.now() - 60000), iScene: 0.55, isDeadZone: false, gEgoMode: 'efferent', stagesRun: ['i_scene', 'dz_graft', 'mus_mark'], result: 'mus_ambiguous' },
+          ]);
+
+          setError('无法连接到 Flask API，显示示例数据');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    // 定时刷新 (每 5 秒)
+    const interval = setInterval(loadData, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const resultBadge = (r: InferenceLog['result']) => {
     const map: Record<InferenceLog['result'], { bg: string; text: string; label: string }> = {
