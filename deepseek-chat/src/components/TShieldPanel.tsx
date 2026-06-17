@@ -197,7 +197,7 @@ export default function TShieldPanel() {
                 </div>
               </div>
               <div className="mt-3 text-[10px] text-textSecondary bg-chatBg/50 rounded p-2">
-                ℹ️ G_ego 根据 ℐ-Scene 自动切换模式：ℐ ≥ 0.3 → Afferent（感知主导）；ℐ < 0.3 → Efferent（行动主导）。异常监控持续运行。
+                {'G_ego 根据ℐ-Scene自动切换模式：ℐ ≥ 0.3 → Afferent（感知主导）；ℐ < 0.3 → Efferent（行动主导）。异常监控持续运行。'}
               </div>
             </div>
 
@@ -301,9 +301,9 @@ export default function TShieldPanel() {
                   <span className="text-[10px] text-textSecondary">{formatTime(entry.timestamp)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-textSecondary mb-1">
-                  <span>ℐ-Scene: <span className={`font-medium ${
+                  <span>{'ℐ-Scene: '}<span className={`font-medium ${
                     entry.iScene > 0.5 ? 'text-emerald-400' : entry.iScene > 0.15 ? 'text-amber-400' : 'text-red-400'
-                  }`}>{entry.iScene.toFixed(4)}</span>
+                  }`}>{entry.iScene.toFixed(4)}</span></span>
                   <span>·</span>
                   <span>阶段: {entry.stagesRun.length}/4</span>
                 </div>
