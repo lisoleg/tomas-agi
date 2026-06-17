@@ -299,7 +299,17 @@ cp tomas_agi/data/tomas.db tomas_agi/data/tomas_backup.db
 
 ## 📝 更新日志
 
-### v3.3（最新 · UI修复 + 构建优化）
+### v3.4（最新 · 缓存优化 + 数据接入 + 代码质量）
+- ✅ **DistillPanel三级缓存**：新增 `distillCache.ts` 模块，实现缓存→API→兜底三级数据加载
+- ✅ **Flask服务脚本**：新增 `start_flask.bat`（Windows）和 `flask.service`（Linux systemd）
+- ✅ **T-Processor真实数据**：`TProcessorPanel.tsx` 从 `/api/tprocessor/stats` 获取真实统计数据
+- ✅ **T-Shield真实数据**：`TShieldPanel.tsx` 从 `/api/tshield/stats` 获取真实统计数据
+- ✅ **Flask API扩展**：新增 `/api/tshield/stats` 端点返回T-Shield统计信息
+- ✅ **ESLint配置**：新增 `.eslintrc.cjs` 和 `.prettierrc.cjs`，代码质量检查
+- ✅ **构建验证**：tsc --noEmit ✓（0错误），vite build ✓
+- ✅ **Meta描述更新**：`index.html` meta description 更新为"太极AGI"
+
+### v3.3（UI修复 + 构建优化）
 - ✅ **T-ShieldPanel修复**：修复JSX解析错误（ℹ️ emoji导致Babel崩溃），闭合未闭合的`<span>`标签
 - ✅ **IconCpu图标**：新增CPU芯片SVG图标导出（用于T-Processor/T-Shield导航）
 - ✅ **CRLF规范化**：修复distiller.ts/useChat.ts/TShieldPanel.tsx中的CRLF换行符（esbuild对CRLF处理有bug）
