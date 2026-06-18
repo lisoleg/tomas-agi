@@ -7,7 +7,7 @@ export default {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
-    include: ['src/test/**/*.test.{ts,tsx}'],
+    include: ['src/test/**/*.test.{ts,tsx}', 'src/api/__tests__/**/*.test.{ts,tsx}'],
     css: true,
     coverage: {
       provider: 'v8',

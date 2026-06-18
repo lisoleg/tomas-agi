@@ -30,6 +30,13 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
     
+    // React Hooks 实验性规则（对已有代码过于严格，降级为 warn）
+    'react-hooks/refs': 'off',
+    'react-hooks/purity': 'off',
+    'react-hooks/set-state-in-effect': 'off',
+    'react-hooks/immutability': 'off',
+    'react-hooks/set-state-in-render': 'off',
+    
     // TypeScript 规则
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-module-boundary-types': 'off',

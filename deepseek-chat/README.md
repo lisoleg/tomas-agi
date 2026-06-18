@@ -174,15 +174,33 @@ python token_bridge.py \
 
 ## 📝 更新日志
 
-### v3.0（当前版本）
-- ✅ 置信度显示 + 用户反馈（点赞/点踩）
-- ✅ 知识冲突用户决策（四选一：保留旧知/采纳新知/合并/忽略）
-- ✅ 图谱可视化全屏布局 + 领域过滤
-- ✅ 技术文档 Tab
-- ✅ 概念名称真实显示（替换 `concept_xx` 占位符）
-- ✅ 太极AGI 品牌更新
+### v3.4（最新） — 2026-06-18
+- ✅ ESLint 配置：统一代码风格，0 errors, 170 warnings
+- ✅ Prettier 代码格式化配置
+- ✅ distillCache 三级缓存：localStorage → Flask API → fallback（16 单元测试全通过）
+- ✅ T-Processor/T-Shield 真实数据接入（替换 mock 数据，5 秒自动刷新）
+- ✅ Flask 关键端点测试脚本（14 个端点覆盖）
+- ✅ 源码 bug 修复：sessionStore dikwDistribution 字段名一致性、retryFetch 不重试逻辑
+- ✅ DIKWPPieChart hooks 顺序修复、AuditMonitor 引号转义修复
 
-### v3.1（最新）
+### v3.3
+- ✅ 对话意图检测：避免无意义 EML 检索
+- ✅ JSX Unicode 语法修复（Babel 解析器兼容）
+- ✅ CRLF→LF 规范化：修复 esbuild 构建误报
+- ✅ TShieldPanel 未闭合标签修复
+- ✅ IconCpu 图标补全
+- ✅ TypeScript 0 错误，Vite 构建 1082 模块通过
+
+### v3.2
+- ✅ 全新独立 Web UI（tomas-dashboard/）：9 页面深色主题交互式设计稿
+- ✅ G_ego / Epiplexity / EMLSemZip 新模块
+- ✅ T-Processor v1.0 硬件仿真器（RRAM Crossbar）
+- ✅ T-Shield 认知安全层（DZ Grafting / MUS Dual-Box）
+- ✅ IDO 五元素模板 + FDE 道法术器本体 + 双时间维度引擎 + IT-OT 翻译桥
+- ✅ Flask API 服务器扩展（16+7 REST 端点）
+- ✅ RTL 代码：T-Shield Zynq-7000 架构（5 模块 + Vivado 自动化脚本）
+
+### v3.1
 - ✅ 知识浏览面板：概念与关系分列为两个独立列表
 - ✅ 图谱搜索框：实时高亮匹配节点
 - ✅ 边权重阈值滑块：动态过滤弱关联边，降低视觉干扰
@@ -190,6 +208,14 @@ python token_bridge.py \
 - ✅ 图谱渲染错误捕获：renderError 状态，出错时显示提示而非黑屏
 - ✅ 语料过滤降级机制：EML 数据缺少 corpusName 时自动显示全部并提示
 - ✅ Escape 快捷键：清除搜索高亮和点击高亮
+
+### v3.0
+- ✅ 置信度显示 + 用户反馈（点赞/点踩）
+- ✅ 知识冲突用户决策（四选一：保留旧知/采纳新知/合并/忽略）
+- ✅ 图谱可视化全屏布局 + 领域过滤
+- ✅ 技术文档 Tab
+- ✅ 概念名称真实显示（替换 `concept_xx` 占位符）
+- ✅ 太极AGI 品牌更新
 
 ### v2.0
 - ✅ "翻译官 + 作家" 混合推理架构

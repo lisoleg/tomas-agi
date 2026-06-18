@@ -11,9 +11,8 @@ function loadFromLocalStorage(): ChatSession[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+  } catch { /* 忽略解析错误 */ }
+  return []
 }
 
 function saveToLocalStorage(sessions: ChatSession[]): boolean {
@@ -24,9 +23,8 @@ function saveToLocalStorage(sessions: ChatSession[]): boolean {
       .slice(0, 10)
     localStorage.setItem(LS_KEY, JSON.stringify(trimmed))
     return true
-  } catch {
-    return false
-  }
+  } catch { /* 忽略存储错误 */ }
+  return false
 }
 
 // ---- 后端 API 调用 ----
@@ -35,7 +33,7 @@ async function apiGetSessions(): Promise<ChatSession[] | null> {
     const res = await fetch(`${API_BASE}/sessions`)
     const data = await res.json()
     if (data.success) return data.data as ChatSession[]
-  } catch {}
+  } catch { /* 忽略网络错误 */ }
   return null
 }
 
@@ -48,7 +46,7 @@ async function apiSaveSessions(sessions: ChatSession[]): Promise<boolean> {
     })
     const data = await res.json()
     return !!data.success
-  } catch {}
+  } catch { /* 忽略网络错误 */ }
   return false
 }
 
@@ -57,7 +55,7 @@ async function apiGetApiKey(): Promise<string | null> {
     const res = await fetch(`${API_BASE}/apikey`)
     const data = await res.json()
     if (data.success) return data.data as string
-  } catch {}
+  } catch { /* 忽略网络错误 */ }
   return null
 }
 
@@ -70,7 +68,7 @@ async function apiSaveApiKey(apiKey: string): Promise<boolean> {
     })
     const data = await res.json()
     return !!data.success
-  } catch {}
+  } catch { /* 忽略网络错误 */ }
   return false
 }
 
@@ -142,7 +140,7 @@ export async function loadApiKey(): Promise<string> {
       apiKeyLoaded = true
       return raw
     }
-  } catch {}
+  } catch { /* 忽略本地存储错误 */ }
 
   // 再降级到 Vite 环境变量
   const envKey = import.meta.env.VITE_DEEPSEEK_API_KEY as string
@@ -166,7 +164,7 @@ export async function saveApiKey(apiKey: string): Promise<void> {
   // 同时写 localStorage
   try {
     localStorage.setItem('tomas_api_key', apiKey)
-  } catch {}
+  } catch { /* 忽略本地存储错误 */ }
 
   if (!apiOk) {
     console.warn('[sessionStore] 后端保存 API Key 失败，已保存到 localStorage')
@@ -179,10 +177,10 @@ export async function clearAllSessions(): Promise<void> {
   for (const session of cachedSessions) {
     try {
       await fetch(`${API_BASE}/sessions/${session.id}`, { method: 'DELETE' })
-    } catch {}
+    } catch { /* 忽略删除错误 */ }
   }
   // localStorage 也清空
-  try { localStorage.removeItem(LS_KEY) } catch {}
+  try { localStorage.removeItem(LS_KEY) } catch { /* 忽略清空错误 */ }
   cachedSessions = []
   sessionsLoaded = true
 }

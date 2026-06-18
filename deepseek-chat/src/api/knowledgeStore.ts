@@ -72,7 +72,7 @@ export async function clearKnowledgeItems(): Promise<void> {
   for (const item of cachedItems) {
     try {
       await fetch(`${API_BASE}/knowledge/${item.id}`, { method: 'DELETE' })
-    } catch {}
+    } catch { /* 忽略删除错误 */ }
   }
   cachedItems = []
   cacheLoaded = true

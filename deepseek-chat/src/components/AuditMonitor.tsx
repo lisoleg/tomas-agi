@@ -143,7 +143,7 @@ export default function AuditMonitor() {
               >
                 <div className="flex items-start justify-between mb-1">
                   <p className="text-sm text-textPrimary font-medium truncate flex-1 mr-2">
-                    "{audit.hypothesis}"
+                    &ldquo;{audit.hypothesis}&rdquo;
                   </p>
                   {statusBadge(audit.status)}
                 </div>
@@ -242,7 +242,7 @@ export default function AuditMonitor() {
                   <div className="border-t border-borderSubtle/20 px-3 py-2 bg-chatBg/50">
                     <div className="text-[10px] font-mono text-textSecondary space-y-1">
                       <p>timestamp: {audit.timestamp.toISOString()}</p>
-                      <p>hypothesis: "{audit.hypothesis}"</p>
+                      <p>hypothesis: &ldquo;{audit.hypothesis}&rdquo;</p>
                       <p>i_value: {audit.iValue}</p>
                       <p>theta_dead: 0.15</p>
                       <p>status: {audit.status}</p>

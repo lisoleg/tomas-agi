@@ -85,6 +85,10 @@ export async function retryFetch(
       lastError = new Error(`HTTP ${response.status}: ${response.statusText}`)
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e))
+      // 客户端错误（400, 401, 403）不重试，立即抛出
+      if ([400, 401, 403].some(s => lastError!.message.startsWith(`HTTP ${s}`))) {
+        throw lastError
+      }
     }
     
     // 如果不是最后一次尝试，等待后重试
@@ -151,7 +155,7 @@ export async function loadFromAPI(
         conceptCount: data.concepts?.length || 0,
         relationCount: data.triples?.length || 0,
         avgIWeight: 0,
-        dikwDistribution: {}
+        dikwpDistribution: {} as Record<string, number>,
       },
       timestamp: Date.now()
     }
@@ -219,7 +223,7 @@ export function loadFallbackData(): CachedGraphData {
       conceptCount: concepts.length,
       relationCount: relations.length,
       avgIWeight: 2.3,
-      dikwDistribution: {
+      dikwpDistribution: {
         'Data': 2,
         'Information': 2,
         'Knowledge': 3,

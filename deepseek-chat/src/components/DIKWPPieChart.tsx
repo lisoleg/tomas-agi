@@ -38,6 +38,9 @@ const LAYER_SHORT: Record<string, string> = {
 }
 
 export function DIKWPPieChart({ data, totalEdges, ontologyName, className }: DIKWPPieChartProps) {
+  // 触发动画的工具: 每个弧段弹出 5px（必须在 early return 之前调用）
+  const [hoveredLayer, setHoveredLayer] = React.useState<string | null>(null)
+
   if (!data || data.length === 0) {
     return (
       <div className={`border border-white/10 rounded-lg p-4 text-center ${className}`}>
@@ -88,8 +91,6 @@ export function DIKWPPieChart({ data, totalEdges, ontologyName, className }: DIK
     }
   }
 
-  // 触发动画的工具: 每个弧段弹出 5px
-  const [hoveredLayer, setHoveredLayer] = React.useState<string | null>(null)
 
   // 过滤掉占比 0% 的层
   const activeData = data.filter(d => d.count > 0)

@@ -28,7 +28,7 @@ function loadFromLS(): CorpusEntry[] {
 
 /** 写入 localStorage */
 function saveToLS(entries: CorpusEntry[]): void {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(entries)) } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(entries)) } catch { /* 忽略存储错误 */ }
 }
 
 // 缓存

@@ -112,7 +112,7 @@ export async function streamChatCompletion(options: StreamChatOptions): Promise<
   let buffer = ''
 
   try {
-    while (true) {
+    while (true) { // eslint-disable-line no-constant-condition -- SSE stream loop
       const { done, value } = await reader.read()
       if (done) break
 

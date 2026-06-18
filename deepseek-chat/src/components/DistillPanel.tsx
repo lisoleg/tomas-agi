@@ -1838,7 +1838,7 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
                         avgDelta
                       })
                       // 用真实概念名替换占位符（删除操作不改变领域信息）
-                      let vizGraph = extractGraphForVisualization(buffer)
+                      const vizGraph = extractGraphForVisualization(buffer)
                       if (vizGraph && concepts.length > 0) {
                         const nameMap = new Map<number, string>()
                         concepts.forEach((c, i) => nameMap.set(i, c.concept))
