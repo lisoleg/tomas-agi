@@ -1536,6 +1536,78 @@ def api_eml_hw_jump():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ============================================================
+# ARC-AGI-3 API 端点
+# ============================================================
+
+@app.route("/api/arc-agi3/fetch-real", methods=["POST"])
+def api_arc_fetch_real():
+    """从 Arc Prize API 获取真实 ARC-AGI-3 游戏环境（需要 ARC_API_KEY）"""
+    try:
+        import os as _os
+        from arc_api_client import ARCAPIClient, build_dataset_from_api
+
+        data = request.get_json(silent=True) or {}
+        api_key = data.get("api_key") or _os.environ.get("ARC_API_KEY", "")
+        game_id = data.get("game_id")  # optional: fetch specific game
+
+        if not api_key:
+            return jsonify({
+                "success": False,
+                "error": "No ARC_API_KEY provided. Get your key from https://arcprize.org/",
+                "hint": "Set ARC_API_KEY env var or pass api_key in request body",
+            }), 400
+
+        game_ids = [game_id] if game_id else None
+        dataset = build_dataset_from_api(api_key=api_key, game_ids=game_ids)
+
+        # Save to data/
+        import os as _os2
+        _os2.makedirs("data", exist_ok=True)
+        output_path = "data/arc_agi3_public.json"
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(dataset, f, indent=2, ensure_ascii=False)
+
+        return jsonify({
+            "success": True,
+            "total_environments": dataset["total_environments"],
+            "saved_to": output_path,
+            "environments": [
+                {"env_id": e.get("env_id", "?"), "has_error": "error" in e}
+                for e in dataset["environments"]
+            ],
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/arc-agi3/list-games", methods=["GET"])
+def api_arc_list_games():
+    """列出可用的 ARC-AGI-3 游戏（需要 ARC_API_KEY）"""
+    try:
+        import os as _os
+        from arc_api_client import ARCAPIClient
+
+        api_key = _os.environ.get("ARC_API_KEY", "")
+        if not api_key:
+            return jsonify({
+                "success": False,
+                "error": "No ARC_API_KEY set. Get your key from https://arcprize.org/",
+            }), 400
+
+        client = ARCAPIClient(api_key=api_key)
+        games = client.list_games()
+        client.close()
+
+        return jsonify({
+            "success": True,
+            "total_games": len(games),
+            "games": games,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     from models import get_engine
     get_engine()
