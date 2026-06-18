@@ -1,7 +1,7 @@
 # TOMAS/太极OS 项目记忆
 
 ## 架构
-- **V3 (当前):** "翻译官 + 作家" 混合架构
+- **V3 (当前):** "翻译官 + 作家" 混合架构，v3.4
   - 翻译官: LSTM/模板 → 事实性查询（EML 图检索→精确回答）
   - 作家: DeepSeek LLM → 创造性查询（带 EML 上下文 + φ-Gate 监管）
   - 路由: 置信度 ≥0.5 → 翻译官，<0.5 → 作家
@@ -21,6 +21,7 @@
   - `strf.py` — STR-F 四大等价变换
   - `pipeline.py` — slim_eml 四合一流水线
 - `distiller.ts` — 前端 TokenBridgeClient + EML 加载/序列化
+- `distillCache.ts` — 三级缓存（localStorage→API→fallback）（v3.4 新增）
 - `DistillPanel.tsx` — 蒸馏 UI + Token Bridge 推理面板
 - `EMLGraphVisualization.tsx` — D3.js 力导向图
 - `router.py` — **TOMAS Router 多模型路由器（2026-06-15 新增）**
@@ -93,6 +94,7 @@
 
 ## 测试
 - 前端: `deepseek-chat/src/test/` — Vitest + RTL，17/17 通过
+- 前端: `deepseek-chat/src/api/__tests__/distillCache.test.ts` — 16/16 通过 (v3.4 新增)
 - 后端: `tomas_agi/tests/` — pytest，**617 passed + 2 skipped（需要 API Key），0 failed**
   - `test_token_bridge.py`: 8 passed
   - `test_eml_dimred.py`: 20 passed
@@ -111,6 +113,7 @@
   - `test_adc.py`: 14 passed (ADC 审计)
   - 其他: 23 passed
 - Python 测试: venv Python 3.13 + pytest (从 `tomas_agi/` 上级目录运行)
+- **Flask 端点测试**: `tomas_agi/scripts/test_endpoints.py` — 14 端点覆盖 (v3.4 新增)
 
 ## 前端功能模块 (deepseek-chat/)
 - **仪表盘 (Dashboard)**: 8 子系统状态卡片 + 活动时间线 + 面板跳转

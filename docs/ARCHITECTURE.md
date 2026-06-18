@@ -1089,8 +1089,32 @@ python server.py --port 5000
 | test_fde_dual_itot.py | 86 |
 | DIKWP/AC tests | 54 |
 | test_tprocessor_tshield.py | 39+2 |
-| **总计** | **598 passed + 2 skipped** |
+| test_new_modules.py | 21 |
+| test_endpoints.py | 0+2 skipped |
+| **前端 Vitest** | 17+16=33 passed |
+| **总计** | **633 passed + 2 skipped** |
+
+### 15.3 前端测试 (v3.4 新增)
+
+| 测试文件 | 通过 | 说明 |
+|----------|------|------|
+| src/test/*.test.tsx | 17 | 组件测试 (Vitest + RTL) |
+| src/api/__tests__/distillCache.test.ts | 16 | 三级缓存单元测试 |
+
+### 15.4 Flask 端点测试 (v3.4 新增)
+
+| 脚本 | 端点 | 说明 |
+|------|------|------|
+| scripts/test_endpoints.py | 14 | 覆盖 health/corpus/sessions/knowledge/tprocessor/tshield/ido/fde/dual-timeline/itot |
+
+### 15.5 代码质量 (v3.4 新增)
+
+| 工具 | 结果 | 说明 |
+|------|------|------|
+| ESLint 8.x | 0 errors, 170 warnings | @typescript-eslint + react + react-hooks |
+| Prettier 3.x | 配置就绪 | 单引号、分号、LF、100 宽度 |
+| TypeScript | 0 errors | `npx tsc --noEmit` |
 
 ---
 
-*文档结束 — 架构师：高见远（Gao）· 更新：2026-06-17*
+*文档结束 — 架构师：高见远（Gao）· 更新：2026-06-18*
