@@ -73,6 +73,15 @@ except ImportError:
     DeadZeroChecker = None
     MUSStableState = None
 
+# 可选导入（NASGA 八元数集成 — v2.0 增强核心）
+try:
+    from nasga_octonion import NASGAEngine, Octonion
+    _HAS_NASGA = True
+except ImportError:
+    _HAS_NASGA = False
+    NASGAEngine = None
+    Octonion = None
+
 
 # ── Constants ────────────────────────────────────────────────────────────
 #
@@ -179,6 +188,18 @@ class G_egoEngine:
         self._status = G_egoStatus()
         self._dead_zero_detector: Optional[DeadZeroDetector] = None
         self._mus_stable_state: Optional[MUSStableState] = None
+
+        # NASGA 引擎（v2.0 增强核心）
+        self._nasga_engine: Optional[Any] = None
+        if _HAS_NASGA:
+            try:
+                self._nasga_engine = NASGAEngine(
+                    kappa=4.0,
+                    dead_zero_theta=i_threshold,
+                )
+                logger.info("G_ego: NASGA engine initialized (kappa=4.0)")
+            except Exception as e:
+                logger.warning(f"G_ego: NASGA init failed: {e}")
 
     # ── Dead-Zero/MUS 集成 ─────────────────────────────────────
     def set_dead_zero_detector(
@@ -305,6 +326,19 @@ class G_egoEngine:
             "features": features[:5],  # 保留前5个特征
         }
 
+        # 2b. NASGA 八元数嵌入（v2.0 增强）
+        nasga_embedding = None
+        if self._nasga_engine is not None:
+            try:
+                # 将感知特征映射为八元数初始向量
+                init_vec = features[:8] if len(features) >= 8 else features + [0.0] * (8 - len(features))
+                concept_name = perceptual_input.get("concept_name", f"percept_{self._state.total_afferent_calls}")
+                nasga_embedding = self._nasga_engine.embed_concept(concept_name, init_vec)
+                concept["nasga_embedding"] = "octonion"  # 标记已嵌入
+                concept["nasga_norm"] = nasga_embedding.norm if hasattr(nasga_embedding, 'norm') else 0.0
+            except Exception as e:
+                logger.warning(f"G_ego afferent NASGA embed failed: {e}")
+
         # 3. EML图更新（如果提供了eml_graph）
         if eml_graph is not None:
             # 使用 EMLGraph.add_node(features) 添加新节点
@@ -409,6 +443,65 @@ class G_egoEngine:
                     "data": vertex if isinstance(vertex, dict) else str(vertex),
                 })
 
+        # 1b. NASGA 八元数传播（v2.0 增强核心）
+        # 在 EML 超图的八元数嵌入空间中传播查询，
+        # 返回 top-k 重构超边（与查询语义最相关的 EML 边）
+        nasga_propagation = None
+        if self._nasga_engine is not None:
+            try:
+                # 将查询嵌入八元数空间
+                query_concepts = semantic_query.get("concepts", [])
+                if not query_concepts:
+                    # 从查询字段中提取概念
+                    for k, v in semantic_query.items():
+                        if isinstance(v, str) and len(v) > 1:
+                            query_concepts.append(v)
+
+                if query_concepts:
+                    # 嵌入查询概念
+                    query_embeddings = []
+                    for qc in query_concepts[:8]:  # 最多8个（八元数维度）
+                        emb = self._nasga_engine.embed_concept(str(qc))
+                        query_embeddings.append(emb)
+
+                    # 在 NASGA 嵌入空间中搜索最相似的概念
+                    # 使用八元数点积作为相似度度量
+                    similarities = []
+                    for concept_name, concept_emb in self._nasga_engine.concept_embeddings.items():
+                        for q_emb in query_embeddings:
+                            try:
+                                sim = q_emb.dot(concept_emb) if hasattr(q_emb, 'dot') else 0.0
+                                similarities.append((concept_name, sim))
+                            except Exception:
+                                similarities.append((concept_name, 0.0))
+
+                    # 取 top-k (k=5)
+                    similarities.sort(key=lambda x: x[1], reverse=True)
+                    top_k = similarities[:5]
+
+                    nasga_propagation = {
+                        "method": "octonion_cosine",
+                        "query_concepts": query_concepts[:8],
+                        "top_k_results": [
+                            {"concept": name, "similarity": float(sim)}
+                            for name, sim in top_k
+                        ],
+                        "embedding_space_dim": 8,  # 八元数维度
+                    }
+
+                    # 将 NASGA 结果合并到 query_results
+                    for item in nasga_propagation["top_k_results"]:
+                        query_results.append({
+                            "vid": f"nasga_{item['concept']}",
+                            "data": item,
+                            "source": "nasga_propagation",
+                        })
+                else:
+                    nasga_propagation = {"method": "octonion_cosine", "note": "No query concepts extracted"}
+            except Exception as e:
+                logger.warning(f"G_ego efferent NASGA propagation failed: {e}")
+                nasga_propagation = {"error": str(e)}
+
         # 2. 语义具体化
         # 简化：将查询结果转换为行动参数
         action_params = {
@@ -424,6 +517,17 @@ class G_egoEngine:
             "content": f"Query returned {action_params['results_count']} results",
             "confidence": 1.0 / max(action_params["results_count"], 1),
         }
+
+        # 3b. 附加 NASGA 传播结果到行动输出（v2.0 增强）
+        if nasga_propagation is not None:
+            action_output["nasga_propagation"] = nasga_propagation
+            # 如果有 NASGA top-k 结果，用最佳相似度修正置信度
+            top_k = nasga_propagation.get("top_k_results", [])
+            if top_k:
+                action_output["confidence"] = max(
+                    action_output["confidence"],
+                    min(top_k[0]["similarity"] / 10.0, 1.0)  # 归一化到 [0,1]
+                )
 
         # 4. 信息损失计算
         # 简化：假设损失来自语义→感知的降维
@@ -545,6 +649,11 @@ class G_egoEngine:
             "avg_switch_delay_ms": (
                 sum(self._state.switch_delays) / len(self._state.switch_delays)
                 if self._state.switch_delays else 0.0
+            ),
+            "nasga_enabled": self._nasga_engine is not None,
+            "nasga_concepts_embedded": (
+                len(self._nasga_engine.concept_embeddings)
+                if self._nasga_engine is not None else 0
             ),
         }
 

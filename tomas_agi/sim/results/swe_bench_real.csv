@@ -1,0 +1,16 @@
+instance_id,repo,has_patch,prediction,correct,error,duration_sec
+astropy__astropy-12907,astropy/astropy,True,"[PLACEHOLDER] Would query TOMAS with: Modeling's `separability_matrix` does not compute separability correctly for nested CompoundModels
+C...",,,0.0
+astropy__astropy-14182,astropy/astropy,True,"[PLACEHOLDER] Would query TOMAS with: Please support header rows in RestructuredText output
+### Description
+
+It would be great if the fo...",,,0.0
+astropy__astropy-14365,astropy/astropy,True,"[PLACEHOLDER] Would query TOMAS with: ascii.qdp Table format assumes QDP commands are upper case
+### Description
+
+ascii.qdp assumes that c...",,,0.0
+astropy__astropy-14995,astropy/astropy,True,"[PLACEHOLDER] Would query TOMAS with: In v5.3, NDDataRef mask propagation fails when one of the operand does not have a mask
+### Descripti...",,,0.0
+astropy__astropy-6938,astropy/astropy,True,"[PLACEHOLDER] Would query TOMAS with: Possible bug in io.fits related to D exponents
+I came across the following code in ``fitsrec.py``:
+...",,,0.0

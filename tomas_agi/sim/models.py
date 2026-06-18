@@ -37,7 +37,10 @@ def get_engine():
             pool_size=5,
             max_overflow=10,
             pool_pre_ping=True,
-            connect_args={"check_same_thread": False},
+            connect_args={
+                "check_same_thread": False,
+                "timeout": 30,  # busy_timeout 30秒
+            },
             echo=False,
         )
         _session_factory = sessionmaker(bind=_engine)
