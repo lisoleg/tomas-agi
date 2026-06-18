@@ -29,7 +29,8 @@
 - `model_pool.json` — 12 家开源模型池配置
 - `dead_zero_mus.py` — **死零/MUS/κ-Snap 机制（2026-06-16 新增）**
 - `nasga_octonion.py` — **NASGA 八元数运算模块（2026-06-16 新增）**
-- `tcci_huashan_test.py` — TCCI-华山测试 v1 独立运行器
+- `tcci_huashan_test.py` — **TCCI-华山测试 v2（10 用例：DZ/MUS/MED/EGO + ℐ守恒/G_ego/MUS稳态/PG囚禁/T_Shield/HeuristicLearn，2026-06-18）**
+- `arc_agi3_eval.py` — **ARC-AGI-3 评估框架（64x64网格/RHAE评分/四支柱/官方系统提示，2026-06-18）**
 - `memos_fusion.py` — **TOMAS-MemOS 融合层（五点升维 + ContradictionDetector 集成，2026-06-16）**
 - `psi_anchor.py` — ψ-锚数据结构与管理器
 - `memos_integration.py` — Token Bridge 集成包装器
@@ -95,6 +96,7 @@
 ## 测试
 - 前端: `deepseek-chat/src/test/` — Vitest + RTL，17/17 通过
 - 前端: `deepseek-chat/src/api/__tests__/distillCache.test.ts` — 16/16 通过 (v3.4 新增)
+- 后端 API: `tomas_agi/scripts/test_endpoints.py` — **14/14 通过** (v3.4 新增, Flask 14 端点)
 - 后端: `tomas_agi/tests/` — pytest，**617 passed + 2 skipped（需要 API Key），0 failed**
   - `test_token_bridge.py`: 8 passed
   - `test_eml_dimred.py`: 20 passed

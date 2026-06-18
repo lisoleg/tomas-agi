@@ -1273,6 +1273,195 @@ def api_tcci_cases():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ============================================================
+# TOMAS v2.0 Articles Upgrade API (6 articles)
+# ============================================================
+
+@app.route("/api/ksnap/execute", methods=["POST"])
+def api_ksnap_execute():
+    """k-Snap projection operator (Axiom A2)"""
+    try:
+        from ksnap_operator import KSnapOperator, CandidateEdge, ObservationBase, SnapResult
+        data = request.json or {}
+        ksnap = KSnapOperator(
+            theta_ftel=data.get("theta_ftel", 0.1),
+            theta_dead=data.get("theta_dead", 0.01),
+        )
+        candidate = CandidateEdge(
+            edge_id=data.get("edge_id", f"api_{int(time.time())}"),
+            source=data.get("source", "unknown"),
+            target=data.get("target", "unknown"),
+            relation=data.get("relation", "relates"),
+            i_value=data.get("i_value", 0.5),
+            ftel_magnitude=data.get("ftel", 0.5),
+            mus_active=data.get("mus_active", False),
+        )
+        obs_map = {
+            "sensor": ObservationBase.SENSOR,
+            "actuator": ObservationBase.ACTUATOR,
+            "ethical": ObservationBase.ETHICAL,
+            "cognitive": ObservationBase.COGNITIVE,
+        }
+        obs = obs_map.get(data.get("obs_base", "cognitive"), ObservationBase.COGNITIVE)
+        event = ksnap.execute(candidate, obs)
+        return jsonify({
+            "success": True,
+            "data": {
+                "result": event.result.value,
+                "reason": event.reason,
+                "manifested": event.manifested_edge is not None,
+                "psi_anchor": event.manifested_edge.psi_anchor if event.manifested_edge else None,
+                "stats": ksnap.stats(),
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/extend-hypergraph", methods=["POST"])
+def api_extend_hypergraph():
+    """ExtendHypergraph primitive (fluid intelligence)"""
+    try:
+        from extend_hypergraph import ExtendHypergraph, EMLLiteKB
+        data = request.json or {}
+        kb = EMLLiteKB()
+        ext = ExtendHypergraph(kb, theta_dead=data.get("theta_dead", 0.01))
+        result = ext.extend(
+            data.get("entities", ["A", "B"]),
+            relation=data.get("relation", "spatial_transformation"),
+            i_value=data.get("i_value", 0.5),
+        )
+        return jsonify({
+            "success": True,
+            "data": {
+                "extended": result.success,
+                "gestalt": result.gestalt_concept,
+                "new_nodes": len(result.new_nodes),
+                "new_edges": len(result.new_edges),
+                "reason": result.reason,
+                "rejected_by_tshield": result.rejected_by_tshield,
+                "kb_stats": kb.stats(),
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nau/detect", methods=["POST"])
+def api_nau_detect():
+    """NAU Liu Mechanism - MUS detection"""
+    try:
+        from nau_liu_mechanism import NAULiuMechanism
+        data = request.json or {}
+        nau = NAULiuMechanism(
+            asym_threshold=data.get("asym_threshold", 0.05),
+            i_threshold=data.get("i_threshold", 0.1),
+        )
+        pair = nau.detect_mus(
+            data.get("edge_a", "a"),
+            data.get("edge_b", "b"),
+            data.get("i_a", 0.7),
+            data.get("i_b", 0.71),
+        )
+        nau_result = nau.apply_nau(pair)
+        return jsonify({
+            "success": True,
+            "data": {
+                "pair": pair.to_dict(),
+                "nau": {
+                    "is_non_associative": nau_result.is_non_associative,
+                    "reason": nau_result.reason,
+                },
+                "stats": nau.stats(),
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/dual-chain/consensus", methods=["GET"])
+def api_dual_chain_consensus():
+    """Dual-chain consensus dynamics"""
+    try:
+        from dual_chain_consensus import DualChainConsensus
+        dcc = DualChainConsensus(coupling_strength=float(request.args.get("j", 0.1)))
+        snapshot = dcc.compute_consensus()
+        dark_energy = dcc.dark_energy_estimate()
+        return jsonify({
+            "success": True,
+            "data": {
+                "consensus": snapshot.to_dict(),
+                "dark_energy": dark_energy,
+                "stats": dcc.stats(),
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/eml-hw-codesign/status", methods=["GET"])
+def api_eml_hw_status():
+    """EML-Hardware Co-Design status"""
+    try:
+        from eml_hardware_codesign import EMLHardwareCoDesign
+        hw = EMLHardwareCoDesign()
+        status = hw.get_hardware_status()
+        benchmark = hw.benchmark_vs_fpga()
+        return jsonify({
+            "success": True,
+            "data": {
+                "hardware_status": status,
+                "benchmark": benchmark,
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/eml-hw-codesign/jump", methods=["POST"])
+def api_eml_hw_jump():
+    """EML-Hardware Co-Design - process hypergraph jump"""
+    try:
+        from eml_hardware_codesign import EMLHardwareCoDesign, JumpType
+        data = request.json or {}
+        hw = EMLHardwareCoDesign()
+        jump_map = {
+            "extend": JumpType.EXTEND,
+            "revise": JumpType.REVISE,
+            "delete": JumpType.DELETE,
+            "merge": JumpType.MERGE,
+            "snap": JumpType.SNAP,
+        }
+        jump_type = jump_map.get(data.get("jump_type", "extend"), JumpType.EXTEND)
+        event, packet = hw.process_jump(
+            jump_type,
+            source=data.get("source", "g_ego"),
+            target=data.get("target", "actuator"),
+            relation=data.get("relation", "executes"),
+            i_value=data.get("i_value", 0.5),
+            ftel=data.get("ftel", 0.5),
+        )
+        committed = False
+        if data.get("commit", False):
+            committed = hw.commit_reconfig(packet)
+        return jsonify({
+            "success": True,
+            "data": {
+                "jump_event_id": event.event_id,
+                "jump_type": event.jump_type.value,
+                "packet_id": packet.packet_id,
+                "instructions": len(packet.instructions),
+                "power_delta_mw": packet.estimated_power_delta,
+                "latency_us": packet.estimated_latency_us,
+                "status": packet.status.value,
+                "committed": committed,
+                "hardware_status": hw.get_hardware_status()["stats"],
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     from models import get_engine
     get_engine()
