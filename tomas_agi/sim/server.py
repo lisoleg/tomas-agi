@@ -1608,6 +1608,167 @@ def api_arc_list_games():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ============================================================
+# AEGIS 演进引擎 API 端点（v3.5 新增）
+# ============================================================
+
+@app.route("/api/aegis/status", methods=["GET"])
+def api_aegis_status():
+    """获取 AEGIS 引擎状态（流水线阶段、关键指标、变体列表）"""
+    try:
+        from harness_aegis import AEGISEngine, TOMAS_HarnessEdge, CausalLog, create_default_harness
+        import os as _os
+        stats_path = "data/aegis_stats.json"
+        variants_path = "data/aegis_variants.json"
+        log_path = "data/aegis_causal_log.json"
+
+        result = {
+            "success": True,
+            "data": {
+                "stats": None,
+                "variants": [],
+                "causalLog": [],
+            }
+        }
+
+        if _os.path.exists(stats_path):
+            with open(stats_path, encoding="utf-8") as f:
+                result["data"]["stats"] = json.load(f)
+        else:
+            # 实时从引擎获取
+            try:
+                engine = AEGISEngine()
+                result["data"]["stats"] = engine.get_status()
+            except Exception:
+                result["data"]["stats"] = None
+
+        if _os.path.exists(variants_path):
+            with open(variants_path, encoding="utf-8") as f:
+                result["data"]["variants"] = json.load(f)
+
+        if _os.path.exists(log_path):
+            with open(log_path, encoding="utf-8") as f:
+                result["data"]["causalLog"] = json.load(f)
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "data": {
+            "stats": None, "variants": [], "causalLog": []
+        }}), 500
+
+
+@app.route("/api/aegis/bench", methods=["POST"])
+def api_aegis_bench():
+    """运行 AEGIS 性能基准测试（调用 bench_aegis.py）"""
+    try:
+        from harness_aegis import run_aegis_benchmark
+        data = request.get_json(silent=True) or {}
+        iterations = max(1, min(10000, data.get("iterations", 100)))
+        num_variants = max(1, min(10, data.get("variants", 3)))
+        verbose = bool(data.get("verbose", False))
+
+        result = run_aegis_benchmark(
+            iterations=iterations,
+            num_variants=num_variants,
+            verbose=verbose,
+        )
+        return jsonify({"success": True, "data": result})
+    except Exception as e:
+        # 回退：直接运行 bench_aegis.py 子进程
+        try:
+            import subprocess, sys
+            result = subprocess.run(
+                [sys.executable, "bench_aegis.py", "--quick", "--output", "json"],
+                capture_output=True, text=True, timeout=60, cwd="."
+            )
+            if result.returncode == 0:
+                return jsonify({"success": True, "data": json.loads(result.stdout)})
+        except Exception:
+            pass
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/aegis/causal-log", methods=["GET"])
+def api_aegis_causal_log():
+    """获取 κ-Snap 因果日志"""
+    try:
+        from harness_aegis import CausalLog
+        log = CausalLog()
+        entries = log.get_entries(limit=int(request.args.get("limit", 100)))
+        return jsonify({"success": True, "data": {"entries": entries, "total": len(entries)}})
+    except Exception as e:
+        # 从文件读取
+        try:
+            import os as _os
+            log_path = "data/aegis_causal_log.json"
+            if _os.path.exists(log_path):
+                with open(log_path, encoding="utf-8") as f:
+                    entries = json.load(f)
+                return jsonify({"success": True, "data": {"entries": entries, "total": len(entries)}})
+        except Exception:
+            pass
+        return jsonify({"success": False, "error": str(e), "data": {"entries": [], "total": 0}}), 500
+
+
+@app.route("/api/aegis/variants", methods=["GET"])
+def api_aegis_variants():
+    """获取 MUS 变体隔离簇列表"""
+    try:
+        from harness_aegis import VariantIsolationManager
+        vim = VariantIsolationManager()
+        variants = vim.list_variants()
+        return jsonify({"success": True, "data": {"variants": variants, "total": len(variants)}})
+    except Exception as e:
+        try:
+            import os as _os
+            variants_path = "data/aegis_variants.json"
+            if _os.path.exists(variants_path):
+                with open(variants_path, encoding="utf-8") as f:
+                    variants = json.load(f)
+                return jsonify({"success": True, "data": {"variants": variants, "total": len(variants)}})
+        except Exception:
+            pass
+        return jsonify({"success": False, "error": str(e), "data": {"variants": [], "total": 0}}), 500
+
+
+@app.route("/api/aegis/psi-align", methods=["POST"])
+def api_aegis_psi_align():
+    """运行 ψ-Alignment 检查（G_ego 对齐验证）"""
+    try:
+        from g_ego import GEgo
+        from harness_aegis import TOMAS_HarnessEdge
+        data = request.get_json(silent=True) or {}
+        edge_id = data.get("edge_id", "test_edge")
+        phase = data.get("phase", "TaskStart")
+
+        edge = TOMAS_HarnessEdge(edge_id=edge_id, phase=phase)
+        g_ego = GEgo()
+        result = g_ego.check_psi_alignment(edge)
+        return jsonify({"success": True, "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/aegis/harness", methods=["POST"])
+def api_aegis_harness():
+    """创建/更新 TOMAS_HarnessEdge"""
+    try:
+        from harness_aegis import TOMAS_HarnessEdge, HookPhase
+        data = request.get_json(silent=True) or {}
+        phase_str = data.get("phase", "TaskStart")
+        phase_map = {"TaskStart": HookPhase.TASK_START, "Perception": HookPhase.PERCEPTION,
+                     "Action": HookPhase.ACTION, "Reflection": HookPhase.REFLECTION}
+        phase = phase_map.get(phase_str, HookPhase.TASK_START)
+        edge = TOMAS_HarnessEdge(edge_id=data.get("edge_id", "api_harness"), phase=phase)
+        return jsonify({"success": True, "data": {
+            "edge_id": edge.edge_id,
+            "phase": edge.phase.value if hasattr(edge.phase, "value") else str(edge.phase),
+            "opt_dims": edge.opt_dims,
+        }})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     from models import get_engine
     get_engine()

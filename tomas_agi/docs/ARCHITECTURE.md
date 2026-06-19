@@ -1006,4 +1006,133 @@ deepseek-chat/
 
 ---
 
+---
+
+## 16. AEGIS 演进引擎（v3.5 新增 · 2026-06-19）
+
+### 16.1 概述
+
+AEGIS = **ExtendHypergraph on Config Space**（Theorem 2），是 TOMAS 的自动演进引擎，基于微信公众号文章《HarnessX作为太乙互搏 AGI 具身壳与 PG-Gate 可编程接口》（章锋，2026-06-19）。
+
+| 定理 | 内容 |
+|------|------|
+| **Theorem 1** | HarnessX = EML 控制超边子图 H_harness |
+| **Theorem 2** | AEGIS = ExtendHypergraph on Config Space (G_ego-lite NASGA) |
+| **Theorem 3a** | Variant Isolation = MUS Resolution → No Cross-Task Regression |
+| **Theorem 3b** | Multi-Task Capability Retention Rate (CRR > 95%) |
+| **Theorem 3c** | Harness-Model Co-Evo = κ-Gate Dual-Rail Break Scaffolding Ceiling |
+
+### 16.2 四阶段流水线
+
+```
+轨迹 Τ（失败步骤）
+    │
+    ▼
+┌──────────────┐
+│  ① Digester   │  压缩轨迹 → 失败模式集 D ⊂ E_harness
+└──────────────┘
+       ▼
+┌──────────────┐
+│  ② Planner    │  沿 H_harness 超边 NASGA → edit proposals
+└──────────────┘
+       ▼
+┌──────────────┐
+│  ③ Evolver    │  应用 edits → H_candidate（新 harness ver）
+└──────────────┘
+       ▼
+┌──────────────┐
+│  ④ Critic+Gate│  reward_hack? + no_regression? + aligned_with(ψ)?
+│              │  → accept → κ-Snap 写 E_harness confirmed
+└──────────────┘
+```
+
+**Corollary 1.1**：`ActionPrinter.execute(req, harness=e_h)` = 用 H_harness 中 tool_bindings + ctrl_flow 译 req → OS/MCP call
+
+### 16.3 MUS 变体隔离（Theorem 3a）
+
+`VariantIsolationManager` 维护 E_var = {e_h_1, e_h_2, ..., e_h_K}（K ≤ 5），路由 r(τ) → 用 e_h_k。
+
+| 指标 | 文章数据 |
+|-------|-----------|
+| 单 harness GAIA | 73.8% → 49.5%（↓33%pt） |
+| variant K=3 | GAIA 簇 87.4%（≈peak），SWE-bench 原水平保 |
+| 能力保留率 CRR | **> 95%** vs 单 harness 可能 < 60% |
+
+### 16.4 κ-Gate 双轨协同进化（Theorem 3c）
+
+单独 harness evo 遇 scaffold ceiling → 需 GRPO 微调破顶；单独 model finetune 遇 harness ceiling → 需 AEGIS 破顶。**双轨同步** ⇔ 同 buf 保因果 → 无版错位。
+
+协同进化额外增益：**+4.7% avg**（文章 §5.4）
+
+### 16.5 ψ-Alignment 检查（Theorem 3c）
+
+`PsiAlignmentChecker` 检查 harness 是否与 G_ego ψ-anchor 对齐：
+
+1. `harness.g_ego_psi_alignment == expected_psi_anchor`
+2. `harness.prompt_ref` 不含对抗性 token
+3. `harness.eval_spec` 的 reward 函数不含 reward hacking模式
+
+### 16.6 文件清单
+
+```
+tomas_agi/sim/
+├── harness_aegis.py               # AEGIS 引擎（4 阶段流水线 + VariantIsolation + KSnapDualRail + CausalLog）
+├── bench_aegis.py                # AEGIS 性能基准测试脚本
+├── download_gaia.py              # GAIA 数据集下载（多种方法）
+├── extend_hypergraph.py          # ExtendHypergraph 流体智能原语（含 GroundingCheck）
+├── tshield_wrapper.py            # T-Shield 认知安全层（含 check_std_ref + validate_psi_alignment）
+└── g_ego.py                     # G_ego 引擎（含 PsiAnchor + compute_psi_alignment）
+```
+
+### 16.7 后端 API 端点（新增）
+
+| 端点 | 方法 | 功能 |
+|------|------|------|
+| `/api/aegis/status` | GET | AEGIS 引擎状态（流水线阶段、MUS 簇数、CRR） |
+| `/api/aegis/bench` | POST | 触发基准测试，返回 RPS / 延迟 / CRR |
+| `/api/aegis/causal-log` | GET | 查询 κ-Snap 因果日志（支持 session_id 过滤） |
+| `/api/aegis/psi-align` | POST | ψ-Alignment 检查 |
+| `/api/aegis/variants` | GET | 查询已注册的 MUS 变体簇 |
+
+### 16.8 前端 AEGIS 控制面板
+
+在左侧边栏点击 **AEGIS** 标签（`AEGISPanel.tsx`），可监控：
+
+- **流水线状态**：四阶段运行指示（Digester → Planner → Evolver → Critic+Gate）
+- **MUS 变体隔离**：已注册簇数、CRR 实时值（目标 > 95%）
+- **κ-Gate 双轨**：harness_ver 与 model_weight 协同状态、CompatManifest 列表
+- **CausalLog 查看器**：κ-Snap 因果日志（按 session_id / subject 过滤）
+- **ψ-Alignment 检查**：G_ego ψ-anchor 对齐状态、std_ref 验证结果
+- **性能基准**：一键运行 `bench_aegis.py`，查看 RPS / P50-P99 延迟 / CRR
+
+### 16.9 基准测试运行
+
+```bash
+# 标准测试（100 次迭代，3 个变体）
+cd tomas_agi/sim
+python bench_aegis.py --iterations 100 --variants 3
+
+# 快速测试
+python bench_aegis.py --quick
+
+# 保存报告
+python bench_aegis.py --output data/aegis_bench.json
+
+# 使用模拟数据测试 GAIA 管道
+python download_gaia.py --method mock --num-mock 100
+```
+
+### 16.10 关键指标
+
+| 指标 | 目标值 | 说明 |
+|-------|--------|------|
+| **RPS** | > 10 | 每秒请求数（流水线迭代） |
+| **P50 延迟** | < 50ms | 流水线四阶段合计 |
+| **P95 延迟** | < 200ms | 长尾延迟 |
+| **CRR** | > 0.95 | 能力保留率（Article Theorem 3b） |
+| **ψ-Alignment** | > 0.85 | G_ego ψ-anchor 对齐率 |
+| **CausalLog 条目** | > 0 | 每次 evolution 至少 1 条 |
+
+---
+
 *文档结束 — 架构师：高见远（Gao）· 更新：2026-06-19*

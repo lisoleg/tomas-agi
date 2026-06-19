@@ -42,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'audit', label: '审计监控', icon: <IconAuditLog size={17} />, section: 'monitor' },
   { id: 'tprocessor', label: 'T-Processor', icon: <IconCpu size={17} />, section: 'monitor' },
   { id: 'tshield', label: 'T-Shield', icon: <IconShield size={17} />, section: 'monitor' },
+  { id: 'aegis', label: 'AEGIS', icon: <IconCpu size={17} />, section: 'monitor' },
   { id: 'memory', label: '记忆浏览器', icon: <IconMemory size={17} />, section: 'monitor' },
   { id: 'firewall-router', label: '防火墙·路由', icon: <IconShield size={17} />, section: 'monitor' },
   { id: 'ido', label: 'IDO 桥接', icon: <IconLayers size={17} />, section: 'engine' },

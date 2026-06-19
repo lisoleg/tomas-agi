@@ -17,6 +17,7 @@ import DualTimelinePanel from './components/DualTimelinePanel'
 import ITOTPanel from './components/ITOTPanel'
 import TProcessorPanel from './components/TProcessorPanel'
 import TShieldPanel from './components/TShieldPanel'
+import AEGISPanel from './components/AEGISPanel'
 import { Sidebar } from './components/Sidebar'
 import { useChat } from './hooks/useChat'
 import { useToast } from './components/Toast'
@@ -208,6 +209,12 @@ export default function App() {
         return (
           <ErrorBoundary>
             <TShieldPanel />
+          </ErrorBoundary>
+        )
+      case 'aegis':
+        return (
+          <ErrorBoundary>
+            <AEGISPanel />
           </ErrorBoundary>
         )
       case 'docs':

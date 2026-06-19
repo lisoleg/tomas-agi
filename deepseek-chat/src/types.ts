@@ -95,6 +95,47 @@ export interface ChatState {
   isLoading: boolean
 }
 
+// ===================== AEGIS 演进引擎类型 =====================
+
+/** AEGIS 引擎统计 */
+export interface AEGISStats {
+  /** 流水线是否运行中 */
+  pipelineRunning: boolean;
+  /** 当前阶段 */
+  currentStage: string;
+  /** 四阶段状态 */
+  stageStatus: Record<'digester' | 'planner' | 'evolver' | 'critic_gate', string>;
+  /** 总演进次数 */
+  totalEvolutions: number;
+  /** 成功演进次数 */
+  successfulEvolutions: number;
+  /** 因果日志条目数 */
+  causalityLogLen: number;
+  /** ψ-Alignment 对齐率 (0-1) */
+  psiAlignmentRate: number;
+  /** 四阶段平均延迟（ms） */
+  avgStageLatencyMs: Record<string, number>;
+}
+
+/** AEGIS MUS 变体簇 */
+export interface AEGISVariant {
+  id: string;
+  name: string;
+  harnessId: string;
+  crr: number;       // Capability Retention Rate
+  status: 'active' | 'standby' | 'retired';
+}
+
+/** κ-Snap 因果日志条目 */
+export interface CausalLogEntry {
+  snapId: string;
+  sessionId: string;
+  subject: string;
+  refId: string;
+  meta: Record<string, any>;
+  timestamp: Date;
+}
+
 // ===================== 蒸馏相关类型 =====================
 
 /** 蒸馏概念 */
@@ -146,8 +187,8 @@ export interface DistillResult {
   emlBuffer: ArrayBuffer | null
 }
 
-/** 应用模式：仪表盘 / 聊天 / 蒸馏 / 世界模型 / 审计 / 记忆 / 防火墙&路由 / 文档 / IDO / FDE / 双时间 / IT-OT / T-Processor / T-Shield */
-export type AppMode = 'dashboard' | 'chat' | 'distill' | 'world-model' | 'audit' | 'memory' | 'firewall-router' | 'docs' | 'ido' | 'fde' | 'dual' | 'itot' | 'tprocessor' | 'tshield'
+/** 应用模式：仪表盘 / 聊天 / 蒸馏 / 世界模型 / 审计 / 记忆 / 防火墙&路由 / 文档 / IDO / FDE / 双时间 / IT-OT / T-Processor / T-Shield / AEGIS */
+export type AppMode = 'dashboard' | 'chat' | 'distill' | 'world-model' | 'audit' | 'memory' | 'firewall-router' | 'docs' | 'ido' | 'fde' | 'dual' | 'itot' | 'tprocessor' | 'tshield' | 'aegis'
 
 // ===================== Token Bridge 相关类型 =====================
 
