@@ -370,6 +370,8 @@ class AEGISEngine:
         eml_kb,
         t_shield=None,
         g_ego_psi_anchor: Optional[str] = None,
+        enable_phi_gate: bool = True,
+        enable_psi_acl: bool = True,
     ):
         self.eml_kb = eml_kb           # EML-Lite KB (存放 H_harness)
         self.t_shield = t_shield        # T_Shield verifier
@@ -377,10 +379,13 @@ class AEGISEngine:
         self.causal_log = CausalLog()
         self.session_id = str(uuid.uuid4())
         # Φ-Gate（Theorem 2）— 在 T_Shield 之前运行
+        self.enable_phi_gate = enable_phi_gate and _HAVE_PHI_GATE
+        self.enable_psi_acl = enable_psi_acl and _HAVE_PHI_GATE
         self.phi_gate = None
         self.psi_acl = None
-        if _HAVE_PHI_GATE:
+        if self.enable_phi_gate:
             self.phi_gate = EMLPhiGate(theta_static=0.3)
+        if self.enable_psi_acl:
             self.psi_acl = EMLPsiACL()
 
     def _compute_trace_hash(self, trajectory: List[Dict[str, Any]]) -> str:
