@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { AEGISStats, AEGISVariant, CausalLogEntry } from '../types';
+import type { AEGISStats, AEGISVariant, CausalLogEntry, AFSStats } from '../types';
 import { IconShield, IconActivity, IconCpu, IconRefresh, IconCheck, IconX } from './icons';
 
 // ── Mock Data ─────────────────────────────────────
@@ -47,6 +47,7 @@ function generateMockCausalLog(): CausalLogEntry[] {
 // ── Component ─────────────────────────────────────
 export default function AEGISPanel() {
   const [stats, setStats] = useState<AEGISStats | null>(null);
+  const [afsStats, setAfsStats] = useState<AFSStats | null>(null);
   const [variants, setVariants] = useState<AEGISVariant[]>([]);
   const [causalLog, setCausalLog] = useState<CausalLogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'variants' | 'causal' | 'bench'>('overview');
@@ -59,24 +60,56 @@ export default function AEGISPanel() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      // 尝试从真实 API 加载
-      const resp = await fetch('http://localhost:5000/api/aegis/status');
-      if (resp.ok) {
-        const data = await resp.json();
-        setStats(data.stats ?? null);
-        setVariants(data.variants ?? []);
-        setCausalLog(data.causalLog ?? []);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      // 静默失败，使用模拟数据
+
+    // 并行获取 AEGIS 和 AFS 数据
+    const [aegisResp, afsResp] = await Promise.all([
+      fetch('http://localhost:5000/api/aegis/status').catch(() => null),
+      fetch('http://localhost:5000/api/afs/status').catch(() => null),
+    ]);
+
+    // 处理 AEGIS 响应
+    let aegisOk = false;
+    if (aegisResp && aegisResp.ok) {
+      try {
+        const data = await aegisResp.json();
+        if (data.success) {
+          setStats(data.data.stats ?? null);
+          setVariants(data.data.variants ?? []);
+          setCausalLog(data.data.causalLog ?? []);
+          aegisOk = true;
+        }
+      } catch { /* ignore */ }
     }
+
+    // 处理 AFS 响应
+    let afsOk = false;
+    if (afsResp && afsResp.ok) {
+      try {
+        const data = await afsResp.json();
+        if (data.success) {
+          setAfsStats(data.data);
+          afsOk = true;
+        }
+      } catch { /* ignore */ }
+    }
+
     // 模拟数据回退
-    setStats(generateMockStats());
-    setVariants(generateMockVariants());
-    setCausalLog(generateMockCausalLog());
+    if (!aegisOk) {
+      setStats(generateMockStats());
+      setVariants(generateMockVariants());
+      setCausalLog(generateMockCausalLog());
+    }
+    if (!afsOk) {
+      setAfsStats({
+        totalEdges: 0,
+        superseded: 0,
+        buckets: 0,
+        kappaLogLen: 0,
+        phiGateEnabled: false,
+        psiAlignmentRate: 0,
+      });
+    }
+
     setLoading(false);
   }, []);
 
@@ -229,7 +262,36 @@ export default function AEGISPanel() {
                   ))}
                 </div>
               </div>
-            )}
+            {/* AFS (EML-Lite KB) 状态 */}
+            <div className="bg-white/5 rounded-lg p-3">
+              <h3 className="text-[10px] text-textSecondary uppercase tracking-wider mb-2">AFS (EML-Lite KB) 状态</h3>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <p className="text-[9px] text-white/50">总边数</p>
+                  <p className="text-sm font-bold text-white/90">{afsStats?.totalEdges ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-white/50">Superseded</p>
+                  <p className="text-sm font-bold text-amber-300">{afsStats?.superseded ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-white/50">Buckets</p>
+                  <p className="text-sm font-bold text-blue-300">{afsStats?.buckets ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-white/50">κ-Snap 日志</p>
+                  <p className="text-sm font-bold text-purple-300">{afsStats?.kappaLogLen ?? 0}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-[10px]">
+                <span className={`px-1.5 py-0.5 rounded ${afsStats?.phiGateEnabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/50'}`}>
+                  Φ-Gate: {afsStats?.phiGateEnabled ? '启用' : '禁用'}
+                </span>
+                <span className="text-white/60">
+                  ψ-对齐率: <span className={afsStats && afsStats.psiAlignmentRate >= 0.9 ? 'text-emerald-300' : 'text-amber-300'}>{Math.round((afsStats?.psiAlignmentRate ?? 0) * 100)}%</span>
+                </span>
+              </div>
+            </div>
           </>
         )}
 

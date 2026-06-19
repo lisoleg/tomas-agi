@@ -9,6 +9,7 @@ TOMAS 后端 API 服务器 — SQLAlchemy ORM 版
 import json
 import time
 from datetime import datetime
+import uuid
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -1774,12 +1775,25 @@ def api_aegis_harness():
 # Theorem 1: AFS + 太极OS USCS ⇔ EML-Lite KB + κ-Snap Continuation
 # ============================================================
 
-@ap.route("/api/afs/status", methods=["GET"])
+# 全局 EML-Lite KB 实例（单例模式）
+_afs_kb_instance = None
+def get_afs_kb():
+    global _afs_kb_instance
+    if _afs_kb_instance is None:
+        from eml_lite_kb import EML_Lite_KB
+        import os
+        persist_path = os.environ.get("AFS_PERSIST_PATH", "data/afs_kb.json")
+        os.makedirs(os.path.dirname(persist_path) if os.path.dirname(persist_path) else ".", exist_ok=True)
+        _afs_kb_instance = EML_Lite_KB(persist_path=persist_path)
+    return _afs_kb_instance
+
+
+@app.route("/api/afs/status", methods=["GET"])
 def api_afs_status():
     """获取 AFS（EML-Lite KB）状态"""
     try:
         from eml_lite_kb import EML_Lite_KB, AppendOnlyHypergraphStore
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         store = kb.global_store
         return jsonify({
             "success": True,
@@ -1794,7 +1808,7 @@ def api_afs_status():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/put", methods=["POST"])
+@app.route("/api/afs/put", methods=["POST"])
 def api_afs_put():
     """写入 EML 超边（Append-Only，A1 ℐ-守恒）"""
     try:
@@ -1812,7 +1826,7 @@ def api_afs_put():
             supersedes=data.get("supersedes"),
             mus_tag=data.get("mus_tag"),
         )
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         kb.global_store.append_version(edge)
         kb.save()
         return jsonify({
@@ -1823,12 +1837,12 @@ def api_afs_put():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/get/<edge_id>", methods=["GET"])
+@app.route("/api/afs/get/<edge_id>", methods=["GET"])
 def api_afs_get(edge_id):
     """读取 EML 超边"""
     try:
         from eml_lite_kb import EML_Lite_KB
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         e = kb.global_store.get(edge_id)
         if e is None:
             return jsonify({"success": False, "error": "edge not found"}), 404
@@ -1837,12 +1851,12 @@ def api_afs_get(edge_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/history/<edge_id>", methods=["GET"])
+@app.route("/api/afs/history/<edge_id>", methods=["GET"])
 def api_afs_history(edge_id):
     """读取版本历史链（沿 supersedes 反向追溯）"""
     try:
         from eml_lite_kb import EML_Lite_KB
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         history = kb.global_store.get_history(edge_id)
         return jsonify({
             "success": True,
@@ -1856,7 +1870,7 @@ def api_afs_history(edge_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/put_mus", methods=["POST"])
+@app.route("/api/afs/put_mus", methods=["POST"])
 def api_afs_put_mus():
     """MUS 双存原语（Theorem 3a）"""
     try:
@@ -1867,7 +1881,7 @@ def api_afs_put_mus():
         if len(edges_data) != 2:
             return jsonify({"success": False, "error": "MUS requires exactly 2 edges"}), 400
         edges = [EMLEdge(**d) for d in edges_data]
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         ok, msg = kb.put_mus(edges, tag)
         kb.save()
         return jsonify({"success": ok, "message": msg})
@@ -1875,7 +1889,7 @@ def api_afs_put_mus():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/resolve_mus", methods=["POST"])
+@app.route("/api/afs/resolve_mus", methods=["POST"])
 def api_afs_resolve_mus():
     """G_ego 裁决 MUS（Theorem 3a）"""
     try:
@@ -1884,7 +1898,7 @@ def api_afs_resolve_mus():
         tag = data.get("tag", "")
         resolution = data.get("resolution", "defer")
         resolved_edge_data = data.get("resolved_edge")
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         if resolution == "prefer_a":
             rtype = MUSResolutionType.PREFER_A
         elif resolution == "prefer_b":
@@ -1901,13 +1915,13 @@ def api_afs_resolve_mus():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/checkpoint", methods=["POST"])
+@app.route("/api/afs/checkpoint", methods=["POST"])
 def api_afs_checkpoint():
     """κ-Snap checkpoint（Corollary 1.1）"""
     try:
         from eml_lite_kb import EML_Lite_KB
         data = request.get_json(silent=True) or {}
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         kid = kb.checkpoint(data)
         kb.save()
         return jsonify({
@@ -1918,7 +1932,7 @@ def api_afs_checkpoint():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/restore", methods=["POST"])
+@app.route("/api/afs/restore", methods=["POST"])
 def api_afs_restore():
     """Continuation restore（Corollary 1.4）"""
     try:
@@ -1926,7 +1940,7 @@ def api_afs_restore():
         data = request.get_json(silent=True) or {}
         kid = data.get("kid", "")
         sess_template = data.get("session_template", {})
-        kb = EML_Lite_KB()
+        kb = get_afs_kb()
         restored = kb.restore(kid, sess_template)
         return jsonify({
             "success": True,
@@ -1941,7 +1955,7 @@ def api_afs_restore():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/phi_gate", methods=["POST"])
+@app.route("/api/afs/phi_gate", methods=["POST"])
 def api_afs_phi_gate():
     """Φ-Gate 语义一致性过滤（Theorem 2）"""
     try:
@@ -1961,7 +1975,7 @@ def api_afs_phi_gate():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@ap.route("/api/afs/psi_acl", methods=["POST"])
+@app.route("/api/afs/psi_acl", methods=["POST"])
 def api_afs_psi_acl():
     """G_ego ψ-ACL 检查（Theorem 3b）"""
     try:
