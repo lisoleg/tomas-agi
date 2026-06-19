@@ -18,7 +18,7 @@ from datetime import datetime
 
 DB_PATH = "D:/tomas-data/tomas.db"
 CSV_PATH = "D:/ownthink_v2/ownthink_v2.csv"
-BATCH_SIZE = 50000
+BATCH_SIZE = 5000  # 每批插入行数（原 50000，避免 MemoryError）
 PROGRESS_INTERVAL = 200000
 
 # 伪概念过滤器
