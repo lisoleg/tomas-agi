@@ -150,12 +150,35 @@ class G_egoStatus:
         is_active: G_ego是否激活
         last_switch_time: 上次模式切换时间
         dmn_mapping_history: DMN映射历史
+        psi_anchor: ψ-对齐锚点（当前ψ对齐参考）
     """
     mode: str = "idle"
     i_value: float = 0.0
     is_active: bool = False
     last_switch_time: float = 0.0
     dmn_mapping_history: List[DMNMapping] = dc_field(default_factory=list)
+    psi_anchor: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class PsiAnchor:
+    """ψ-对齐锚点（Article Theorem 3c）。
+
+    表示 G_ego 当前的 ψ-alignment 参考状态，
+    用于检查 EML 超边是否与 G_ego 的 ψ-对齐一致。
+
+    Attributes:
+        i_value: 当前 ℐ 值（核心对齐指标）
+        mode: 当前 G_ego 模式
+        timestamp: 锚点创建时间戳
+        alignment_threshold: 对齐阈值（低于此值视为不对齐）
+        metadata: 额外元数据
+    """
+    i_value: float = 0.0
+    mode: str = "idle"
+    timestamp: float = 0.0
+    alignment_threshold: float = 0.3
+    metadata: Dict[str, Any] = dc_field(default_factory=dict)
 
 
 # ── G_ego Engine ───────────────────────────────────────────────────────
@@ -213,6 +236,83 @@ class G_egoEngine:
     ) -> None:
         """设置MUS稳态（用于确保G_ego状态稳态）。"""
         self._mus_stable_state = mus
+
+    def _update_psi_anchor(self) -> None:
+        """更新 ψ-对齐锚点（基于当前 G_ego 状态）。
+
+        Article Theorem 3c: κ-Gate 双轨协同进化
+            ψ-alignment 检查需要参考锚点，
+            该锚点随 G_ego 状态变化而更新。
+        """
+        current_i = self.get_current_i_value()
+        self._status.psi_anchor = {
+            "i_value": current_i,
+            "mode": self._status.mode,
+            "timestamp": time.time(),
+            "alignment_threshold": 0.3,  # 默认阈值
+            "metadata": {
+                "is_active": self._status.is_active,
+                "total_afferent_calls": self._state.total_afferent_calls,
+                "total_efferent_calls": self._state.total_efferent_calls,
+            }
+        }
+        logger.debug(
+            f"G_ego: ψ-anchor updated (i={current_i:.4f}, mode={self._status.mode})"
+        )
+
+    def compute_psi_alignment(
+        self, edge: Any
+    ) -> Dict[str, Any]:
+        """计算 EML 超边与 G_ego ψ-锚点的对齐分数。
+
+        Article Theorem 3c: ψ-alignment 检查
+            对齐分数 = 1.0 - |edge.i_value - psi_anchor.i_value|
+
+        Args:
+            edge: EML 超边实例（需有 i_value 属性）
+
+        Returns:
+            包含 alignment_score, aligned, reason 的字典
+        """
+        # 确保 psi_anchor 已初始化
+        if self._status.psi_anchor is None:
+            self._update_psi_anchor()
+
+        psi_anchor = self._status.psi_anchor
+        
+        # 获取 edge 的 i_value（支持对象和字典）
+        if isinstance(edge, dict):
+            edge_i = edge.get("i_value", 0.5)
+        else:
+            edge_i = getattr(edge, "i_value", 0.5)
+
+        # 计算对齐分数
+        alignment_score = 1.0 - abs(psi_anchor["i_value"] - edge_i)
+
+        # 判断是否对齐
+        aligned = alignment_score >= psi_anchor["alignment_threshold"]
+
+        result = {
+            "alignment_score": alignment_score,
+            "aligned": aligned,
+            "edge_i_value": edge_i,
+            "psi_anchor_i_value": psi_anchor["i_value"],
+            "threshold": psi_anchor["alignment_threshold"],
+        }
+
+        if not aligned:
+            result["reason"] = (
+                f"Low ψ-alignment: score={alignment_score:.4f} < "
+                f"threshold={psi_anchor['alignment_threshold']:.4f}"
+            )
+        else:
+            result["reason"] = "ψ-alignment OK"
+
+        logger.debug(
+            f"G_ego: ψ-alignment for edge: score={alignment_score:.4f}, "
+            f"aligned={aligned}"
+        )
+        return result
 
     def get_current_i_value(self) -> float:
         """获取当前ℐ值（从Dead-Zero检测器）。"""
@@ -630,6 +730,9 @@ class G_egoEngine:
     # ── 状态管理 ─────────────────────────────────────────────
     def get_status(self) -> Dict[str, Any]:
         """返回G_ego当前状态。"""
+        # 确保 psi_anchor 是最新的
+        self._update_psi_anchor()
+
         return {
             "mode": self._status.mode,
             "i_value": self.get_current_i_value(),
@@ -655,6 +758,7 @@ class G_egoEngine:
                 len(self._nasga_engine.concept_embeddings)
                 if self._nasga_engine is not None else 0
             ),
+            "psi_anchor": self._status.psi_anchor,  # ψ-对齐锚点
         }
 
     def get_state(self) -> Dict[str, Any]:

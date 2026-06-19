@@ -527,10 +527,19 @@ class TShieldWrapper:
             "reason": None,
         }
 
-        # 获取 G_ego 当前状态
-        if psi_anchor is None and self.enable_g_ego and self.g_ego_engine is not None:
-            psi_anchor = self.g_ego_engine.get_status()
+        # 优先使用 G_egoEngine.compute_psi_alignment() 方法
+        if self.enable_g_ego and self.g_ego_engine is not None:
+            try:
+                psi_result = self.g_ego_engine.compute_psi_alignment(edge_or_detection)
+                # 适配返回格式
+                result["alignment_score"] = psi_result.get("alignment_score")
+                result["aligned"] = psi_result.get("aligned", True)
+                result["reason"] = psi_result.get("reason")
+                return result
+            except Exception as e:
+                logger.warning(f"validate_psi_alignment: G_ego compute failed: {e}, falling back to manual")
 
+        # 回退：手动计算（如果 G_ego 不可用）
         if psi_anchor is None:
             logger.debug("validate_psi_alignment: G_ego not available, skipping")
             return result
