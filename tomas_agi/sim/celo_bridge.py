@@ -102,7 +102,7 @@ DECIMALS: int = 18
 TRANSFER_METHOD_ID: str = "0xa9059cbb"
 
 # RPC 超时（秒）
-RPC_TIMEOUT: float = 10.0
+RPC_TIMEOUT: float = 3.0
 
 
 # ============================================================
@@ -262,11 +262,14 @@ class CeloBridge:
         amount_wei = int(amount * (10 ** DECIMALS))
         tx_data = self._encode_transfer_call(to_addr, amount_wei)
 
-        # 通过 Celo RPC 广播交易
-        rpc_result = self._call_celo_rpc(
-            "eth_sendRawTransaction",
-            [tx_data],
-        )
+        # 通过 Celo RPC 广播交易（快速降级：RPC 不可用时跳过网络调用）
+        if not self._rpc_available and self._degraded_count > 0:
+            rpc_result = {"degraded": True, "error": "RPC known unavailable"}
+        else:
+            rpc_result = self._call_celo_rpc(
+                "eth_sendRawTransaction",
+                [tx_data],
+            )
 
         if rpc_result.get("degraded", True):
             # 降级模式：生成模拟 tx_hash
