@@ -253,6 +253,14 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
   // 数据加载状态
   const [dataLoading, setDataLoading] = useState(true)
   const [dataError, setDataError] = useState<string | null>(null)
+
+  // ── 全库真实统计（来自 /api/knowledge/stats，非分页子集）──
+  const [dbStats, setDbStats] = useState<{
+    tripleCount: number
+    conceptCount: number
+    predicateCount: number
+    avgIWeight: number
+  } | null>(null)
   // ⚠️ 注意：useToast() 已在上方调用，此处不再重复  
   // 加载知识条目和语料条目
   useEffect(() => {
@@ -267,6 +275,20 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
 
         const entries = await getAllCorpusEntries()
         setCorpusEntries(entries)
+
+        // ── 加载全库真实统计数据（不受分页限制）──
+        try {
+          const statsRes = await fetch('http://localhost:5000/api/knowledge/stats')
+          if (statsRes.ok) {
+            const statsJson = await statsRes.json()
+            if (statsJson.success && statsJson.data) {
+              setDbStats(statsJson.data)
+              console.log('[DistillPanel] 全库统计:', JSON.stringify(statsJson.data))
+            }
+          }
+        } catch (statsErr) {
+          console.warn('[DistillPanel] 全库统计加载失败（非致命）:', statsErr)
+        }
 
         // ── 同时加载图谱数据（从后端三元组构建）──
         // 这样用户点击"知识浏览"中的概念时就能直接显示邻域子图
@@ -1257,18 +1279,21 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
         {/* 统计卡片 — 始终可见 */}
         <div className="flex items-center gap-2 text-xs text-textSecondary">
           <span className="font-medium">
-            {bridgeState.loaded ? '📊 知识库统计' : graphData && graphData.vertices.length > 0 ? '📊 图谱统计（API）' : phase === 'done' ? '📊 蒸馏统计' : '📊 知识库统计'}
+            {bridgeState.loaded ? '📊 知识库统计' : dbStats ? '📊 全库统计（API）' : graphData && graphData.vertices.length > 0 ? '📊 图谱统计（API）' : phase === 'done' ? '📊 蒸馏统计' : '📊 知识库统计'}
           </span>
           {bridgeState.loaded && (
             <span className="text-textSecondary/60">{bridgeState.fileName}</span>
           )}
-          {!bridgeState.loaded && graphData && graphData.vertices.length > 0 && (
+          {dbStats && !bridgeState.loaded && (
+            <span className="text-textSecondary/60">OpenThink 全量</span>
+          )}
+          {!bridgeState.loaded && !dbStats && graphData && graphData.vertices.length > 0 && (
             <span className="text-textSecondary/60">后端图谱数据</span>
           )}
-          {!bridgeState.loaded && phase === 'done' && (
+          {!bridgeState.loaded && !dbStats && phase === 'done' && (
             <span className="text-textSecondary/60">蒸馏结果</span>
           )}
-          {!bridgeState.loaded && !(graphData && graphData.vertices.length > 0) && phase !== 'done' && (
+          {!bridgeState.loaded && !dbStats && !(graphData && graphData.vertices.length > 0) && phase !== 'done' && (
             <span className="text-textSecondary/40">等待加载…</span>
           )}
         </div>
@@ -1276,43 +1301,55 @@ export function DistillPanel({ apiKey, externalBridgeClient, externalEMLState }:
           <StatCard
             label="概念数"
             value={
-              bridgeState.loaded
-                ? String(bridgeState.vertexCount)
-                : graphData && graphData.vertices.length > 0
-                  ? String(graphData.vertices.length)
-                  : phase === 'done'
-                    ? String(concepts.length)
-                    : '—'
+              dbStats
+                ? dbStats.conceptCount.toLocaleString('en')
+                : bridgeState.loaded
+                  ? String(bridgeState.vertexCount)
+                  : graphData && graphData.vertices.length > 0
+                    ? String(graphData.vertices.length)
+                    : phase === 'done'
+                      ? String(concepts.length)
+                      : '—'
             }
           />
           <StatCard
             label="关系数"
             value={
-              bridgeState.loaded
-                ? String(bridgeState.edgeCount)
-                : graphData && graphData.edges.length > 0
-                  ? String(graphData.edges.length)
-                  : phase === 'done'
-                    ? String(relations.length)
-                    : '—'
+              dbStats
+                ? dbStats.tripleCount.toLocaleString('en')
+                : bridgeState.loaded
+                  ? String(bridgeState.edgeCount)
+                  : graphData && graphData.edges.length > 0
+                    ? String(graphData.edges.length)
+                    : phase === 'done'
+                      ? String(relations.length)
+                      : '—'
             }
           />
           <StatCard
-            label="语料条数 ▾"
-            value={corpusEntries.length > 0 ? String(corpusEntries.length) : '—'}
+            label="谓词数 ▾"
+            value={
+              dbStats
+                ? dbStats.predicateCount.toLocaleString('en')
+                : corpusEntries.length > 0
+                  ? String(corpusEntries.length)
+                  : '—'
+            }
             clickable={corpusEntries.length > 0}
             onClick={() => corpusListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
           <StatCard
             label="𝕀 均值"
             value={
-              bridgeState.loaded
-                ? bridgeState.avgDelta.toFixed(3)
-                : graphData && graphData.vertices.length > 0
-                  ? (graphData.vertices.reduce((s, v) => s + v.delta, 0) / graphData.vertices.length).toFixed(3)
-                  : phase === 'done'
-                    ? avgInfoExistence.toFixed(3)
-                    : '—'
+              dbStats
+                ? String(dbStats.avgIWeight)
+                : bridgeState.loaded
+                  ? bridgeState.avgDelta.toFixed(3)
+                  : graphData && graphData.vertices.length > 0
+                    ? (graphData.vertices.reduce((s, v) => s + v.delta, 0) / graphData.vertices.length).toFixed(3)
+                    : phase === 'done'
+                      ? avgInfoExistence.toFixed(3)
+                      : '—'
             }
           />
           <StatCard
