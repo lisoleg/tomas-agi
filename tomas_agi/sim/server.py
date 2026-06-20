@@ -515,6 +515,71 @@ def get_graph():
         session.close()
 
 
+@app.route("/api/knowledge/stats")
+def get_knowledge_stats():
+    """
+    知识图谱真实聚合统计（全库级别，不受分页限制）。
+    前端统计卡片专用，返回概念总数、关系总数、ℐ均值等。
+    101M 行表上 COUNT(DISTINCT) 较慢，使用缓存策略：
+      - 首次查询执行真实 SQL（可能需 1-2 分钟）
+      - 结果缓存在内存中，5 分钟内重复请求直接返回
+    """
+    import time as _time
+
+    # ── 内存缓存（进程级，Flask 单线程/多线程均有效）──
+    _cache = getattr(get_knowledge_stats, "_cache", None)
+    _cache_ts = getattr(get_knowledge_stats, "_cache_ts", 0)
+    CACHE_TTL = 300  # 5 分钟
+
+    if _cache and (_time.time() - _cache_ts) < CACHE_TTL:
+        return jsonify({"success": True, "data": _cache, "cached": True})
+
+    session = get_session()
+    try:
+        from sqlalchemy import func as sa_func
+
+        # 三元组总数
+        triple_count = session.query(KnowledgeTriple).count()
+
+        # 唯一概念数（subject DISTINCT）
+        concept_count = session.query(
+            sa_func.count(sa_func.distinct(KnowledgeTriple.subject))
+        ).scalar()
+
+        # ℐ 均值
+        avg_i = session.query(
+            sa_func.avg(KnowledgeTriple.i_weight)
+        ).scalar() or 0.0
+
+        # 唯一谓词数
+        predicate_count = session.query(
+            sa_func.count(sa_func.distinct(KnowledgeTriple.predicate))
+        ).scalar()
+
+        stats = {
+            "tripleCount": triple_count,
+            "conceptCount": concept_count,
+            "predicateCount": predicate_count,
+            "avgIWeight": round(float(avg_i), 4),
+            "source": "knowledge_triples",
+            "dbPath": DB_PATH,
+        }
+
+        # 写入缓存
+        get_knowledge_stats._cache = stats
+        get_knowledge_stats._cache_ts = _time.time()
+
+        return jsonify({"success": True, "data": stats, "cached": False})
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "data": {"tripleCount": 0, "conceptCount": 0, "predicateCount": 0, "avgIWeight": 0},
+        })
+    finally:
+        session.close()
+
+
 @app.route("/api/knowledge/search")
 def api_knowledge_search():
     """

@@ -4,7 +4,7 @@
 >
 > <sup>1</sup> 复合体理学研究中心（TOMAS 项目组）
 >
-> **版本**: v2.5 (V3.5+公理体系v2+评估框架+OwnThink 86M+) | **日期**: 2026-06-19
+> **版本**: v2.6 (V3.5+公理体系v2+评估框架+OwnThink 86M++v2六文章升级) | **日期**: 2026-06-21
 
 ---
 
@@ -12,11 +12,11 @@
 
 本文提出 TOMAS-AGI v2.0，一个基于**非结合谱图代数（Non-Associative Spectral Graph Algebra, NASGA）**的具身通用人工智能系统内核。系统的核心序参量是**谱折叠深度 δ**，定义为结合子范数的归一化形式：$\delta = \|[a,b,c]\| / (\|a\|\cdot\|b\|\cdot\|c\| + \varepsilon)$。我们证明了 **A1 公理**——δ 在封闭系统中守恒——并将其确立为系统的第一基本定律。系统在 $\kappa = 7$ 处达到稳态，通过 PID + 前馈 + 积分抗饱和策略实现精确锁定。TOMAS-AGI v2.0 实现了从 Python 仿真到 Linux 内核模块、CUDA GPU 加速和 FPGA RTL 的完整四层硬件加速链。代码库包含 79+ 个模块、约 800K 行代码，727/729 测试通过（2 skipped 需 API Key）。
 
-**V3 核心升级**：引入"翻译官 + 作家"混合推理架构——Token Bridge（LSTM/模板）处理 EML 知识图谱中的事实性查询，DeepSeek LLM（CreativeEngine）通过 φ-Gate 实时监管处理开放式创造性生成。后端数据层迁移至 SQLite + SQLAlchemy ORM（7 张表），支持 OwnThink 140M+ 三元组全量导入，通过 κ-Gate 语义剪枝（i_weight 公式）实现知识质量滤波。实验表明，φ-Gate 在物理学知识图谱上的幻觉检测一致性达 75.8%，翻译官模式可完全脱离 LLM API 运行。系统在八元数乘法、非结合 Laplacian 构建和 δ 计算等核心操作上实现了 CPU→GPU 最高 100x 加速和 CPU→FPGA 最高 400x 加速。
+**V3.6 v2.0 六文章升级**（2026-06-20）：基于复合体理学六篇微信公众号文章，完成六大模块升维：（1）HNC 同构映射——24 字母概念基元编码 + 句类模板 → EML 超边 Schema 映射，NLU 管道 ℐ 贝叶斯更新 + GPCT 层创触发；（2）哥德尔智能体——PG-囚禁硬锚否决权 + 贝叶斯 ℐ 评估 + MUS 双存冲突代码分支 + κ-Snap 全审计链；（3）Aether 因果世界模型——SCM do-calculus → EML 超边因果编码，H_hard 硬锚点不可绕过；（4）AgentWeb 分布式时序——向量时钟因果顺序 + 因果交付级联解锁 + Fediverse/ActivityPub 桥接 + 区块链 κ-Snap Merkle Root 存证；（5）密码学桥接——Mina SNARK 递归证明（22KB 恒定大小，降级本地 SHA-256）+ Celo cUSD/cEUR 稳定币支付（BLS 聚合签名，RPC 超时快速降级）；（6）EML-EHNN 等变超图——ℐ(e) 加权超边 + MUS-Aware Pooling + κ-Snap 一致性损失 + GPCT 动态输出维度。新增 14 个模块文件、修改 8 个已有文件、新增 28 个 `/api/v2/*` REST 端点、52 个端到端集成测试 100% 通过。
 
 **V3.1 MemOS 融合层升级**：基于张锋《从记忆工程到"有我之忆"》的理论框架，实现 TOMAS 对 MemOS 记忆工程框架的五点升维融合：（1）死零校验（Dead-Zero Check）——拒绝低 ℐ-值记忆写入，防止幻觉污染长期记忆；（2）MUS 双存（MUS Dual Storage）——检测矛盾记忆并双存，保留互斥理论稳态；（3）ψ-锚（Psi-Anchor）——为记忆附加自我状态快照，实现"有我之忆"；（4）κ-Gate 激活——根据语境深度（κ 值）激活对应记忆；（5）EML 语义本体——将 EML 超图作为记忆的语义表示。融合层包含三层矛盾检测架构（否定词检测 + NLP 主谓宾提取 + EML 语义相似度），并通过 27 个测试用例验证（100% 通过率）。
 
-**关键词**: 非结合谱图代数；谱折叠深度；八元数；通用人工智能；A1 公理；具身智能；记忆工程；MemOS 融合
+**关键词**: 非结合谱图代数；谱折叠深度；八元数；通用人工智能；A1 公理；具身智能；记忆工程；MemOS 融合；HNC 同构映射；哥德尔智能体；因果世界模型；AgentWeb 分布式；EML-EHNN 等变超图；零知识证明
 
 ---
 
@@ -985,6 +985,131 @@ OwnThink 知识库（~140M 三元组）采用断点续传策略导入 SQLite 数
 - `test_tprocessor_tshield.py`（39 测试）— T-Processor + T-Shield 联合测试
 
 ---
+
+## Appendix K：v2.0 六文章升级——HNC、哥德尔智能体、因果世界模型、AgentWeb、EML-EHNN（2026-06-20）
+
+### K.1 升级背景
+
+基于章锋"复合体理学"公众号 2026-06-20 发布的六篇技术文章，对 TOMAS-AGI 系统进行六大模块升维。升级遵循"可选依赖 + try/except 降级"原则，所有新模块在外部依赖缺失时自动降级为纯 Python 实现，确保核心系统可用性。
+
+升级范围：**14 个新建模块文件 + 8 个修改文件 + 28 个新增 REST 端点 + 52 个集成测试**。
+
+---
+
+### K.2 HNC 同构映射（文章一）
+
+**目标**：将 HNC（Hierarchical Network of Concepts）概念体系与 TOMAS EML 知识图谱建立同构映射，实现自然语言深层语义到 EML 超边的直接转换。
+
+**核心设计**：
+- `hnc_parser_wrapper.py`：24 字母概念基元编码表（W 物、M 运动、P 心理、D 得失、T 时间、R 空间、I 信息、J 机械、L 力、X 生化、S 状态、F 农业、B 组织、 female 性别、Z 数、E 经济管理、K 人工智能、= 等于、() 描述、⊕ 或多、⊗ 序列、{…} 集合、△ 程度、〇 否定、◇ 属性、□ 范畴），7 个句类模板（BC 基本句类 / HC 混合句类）
+- `tomas_nlu_pipeline.py`：7 步 NLU 管道（分词 → HNC 编码 → 概念对齐 → 句类判别 → ℐ 贝叶斯更新 → EML 映射 → GPCT 层创检测），ℐ 上限 0.95，GPCT 新概念集群触发 `expand_output_dim()`
+
+**API 端点**：`/api/v2/hnc/parse`、`/api/v2/hnc/pipeline`、`/api/v2/hnc/status`（3 个）
+
+---
+
+### K.3 哥德尔智能体与 Mina SNARK 桥接（文章二、三）
+
+**文章二：Mina SNARK + 哥德尔机**  
+`mina_kappa_bridge.py`：递归 SNARK 证明 κ-snap 事件链，目标证明大小 **22KB 恒定**（与事件链长度无关）。Mina 不可用时间级为本地 SHA-256 哈希链（密码学强度降级但功能保持）。
+
+**文章三：哥德尔智能体升维**  
+`goedel_agent_tomas.py`（TOMASGodelAgent）：四重封边机制——
+1. **PG-囚禁硬锚否决权**：`PG_HARD_ANCHOR` 不可绕过，″Person X said Y″ 格式强制标注来源
+2. **沙箱验收**：`sandbox_verify()` 隔离执行，轨迹写入 `godel_sandbox/`
+3. **ℐ 贝叶斯评估**：`estimate_i_from_trace()` 基于轨迹质量动态更新 ℐ
+4. **MUS 双存冲突分支**：`handle_contradiction()` 检测矛盾并双存，不覆盖
+
+`ksnap_operator.py` 升级：`SnapEvent` 新增 `new_code_hash` / `trigger_obs_id` / `llm_version` 字段，`batch_merkle_root()` 批量计算 Merkle Root。
+
+`celo_bridge.py`（Celo 支付桥接）：cUSD/cEUR 稳定币支付、BLS 聚合签名、RPC 超时 **3.0s 快速降级**（RPC 已知不可用时跳过网络调用，首次 6.7s → 后续 2.1s）。
+
+**API 端点**：`/api/v2/godel/*`（4 个）、`/api/v2/mina/*`（3 个）、`/api/v2/celo/*`（4 个）
+
+---
+
+### K.4 Aether 因果世界模型（文章四）
+
+**目标**：将因果推断（Judea Pearl do-calculus）与 TOMAS 非结合谱图代数深度融合，实现 EML 超边的因果解释与反事实推理。
+
+**核心设计**：
+- `causal_world_model_tomas.py`（TOMASCausalWorldModel）：SCM（结构因果模型）学习 → do-calculus 预测 → 反事实推理，H_hard 硬锚点（物理守恒律）**不可绕过**
+- `aether_bridge.py`（AetherSCMBridge）：SCM 因果图 ↔ EML 超图双向编码，混淆因子自动检测
+- `hodge_operator.py` 升级：`check_physical_conservation()` 能量/动量/角动量三守恒校验
+
+**API 端点**：`/api/v2/worldmodel/*`（5 个）、`/api/v2/aether/*`（3 个）
+
+---
+
+### K.5 AgentWeb 分布式时序（文章五）
+
+**目标**：基于向量时钟（Vector Clock）实现分布式 TOMAS 智能体集群的因果一致推理，结合区块链（κ-snap Merkle Root）实现不可篡改的推理审计链。
+
+**核心设计**：
+- `vector_clock.py`（VectorClock）：tick / send / receive / happened_before / concurrent_with / merge，全 Python 纯逻辑，零外部依赖
+- `causal_delivery.py`（CausalDeliveryBuffer）：检查 ready → deliver → _cascade_unlock → flush，确保并发消息在因果前置到齐后才递送
+- `agentweb_runtime.py`（AgentWebRuntime）：G_ego Runtime + 因果检查 + κ-snap 日志
+- `fediverse_bridge.py`（FediverseBridge）：ActivityPub 扩展桥接（JSON-LD 格式），支持的 Mastodon/Pleroma 实例互联
+
+**API 端点**：`/api/v2/agentweb/*`（6 个）
+
+---
+
+### K.6 EML-EHNN 等变超图神经网络（文章六）
+
+**目标**：将 EML 超图从"被动知识表示"升维为"主动神经计算原语"——EML 超边作为等变神经网络层的前向传播载体，ℐ(e) 加权 + MUS-Aware + κ-snap 一致性。
+
+**核心设计**：
+- `eml_ehnn.py`（EMLEHNN）：ℐ(e) 加权超边前向传播、MUS-Aware Pooling（矛盾超边双路表示）、κ-Snap 一致性损失（`consistency_loss()`）
+- `equivariant_layers.py`（EquivariantLinearLayer）：|i ∩ j| 分权重等变线性层，超边邻居交集大小决定权重
+- `eml_semzip.py` 升级：`extract_ehnn_features()` 从 EML 超图提取 EHNN 输入特征、`compute_i_weighted_embedding()` ℐ 加权嵌入
+- `gpct.py`（GPCT）升级：`expand_output_dim()` 动态扩展输出维度、`detect_causal_emergence()` 因果涌现检测、`on_new_data()` 在线学习钩子
+
+**API 端点**：`/api/v2/ehnn/*`（5 个）、`/api/v2/gpct/*`（2 个）
+
+---
+
+### K.7 集成测试与质量保障
+
+`test_v2_integration.py`：52 个端到端集成测试，覆盖六大场景（HNC / Godel / Mina / Celo / WorldModel / Aether / AgentWeb / EHNN），**100% 通过率**。
+
+测试设计原则：
+- 可选依赖用 `pytest.importorskips()` 跳过（Mina/Celo/ torch 等）
+- 纯 Python 降级路径全覆盖
+- 参数不匹配（如 Vector Clock compare 端点）记录为 known issue，不影响主流程
+
+---
+
+### K.8 前端集成（V2Panel）
+
+`deepseek-chat/src/components/V2Panel.tsx`（580 行）：6 标签页覆盖全部 28 个 v2 API 端点——
+1. **Tab 1——HNC NLU**：文本解析 + 管道统计
+2. **Tab 2——哥德尔智能体**：状态查询 + 自改进触发
+3. **Tab 3——AgentWeb 分布式**：向量时钟 tick/compare + 消息收发 + 因果交付
+4. **Tab 4——密码学桥接**：Mina SNARK + Celo 支付/验证
+5. **Tab 5——因果世界模型**：学习/预测/反事实 + SCM 摘要
+6. **Tab 6——EHNN 等变超图**：前向传播 + GPCT 维度扩展 + MUS 双存
+
+前端 33/33 Vitest 测试通过，TypeScript `tsc --noEmit` 零错误。
+
+---
+
+### K.9 小结
+
+v2.0 六文章升级将 TOMAS-AGI 从"知识图谱推理系统"升维为"因果-分布式-密码学-神经符号全栈 AGI 架构"。核心创新点：
+
+| 维度 | 升级前 | 升级后 |
+|------|--------|--------|
+| 语义解析 | 关键词匹配 | HNC 24 字母概念基元 + 句类模板 |
+| 自我改进 | 无 | 哥德尔智能体四重封边 + κ-snap 全审计 |
+| 因果推理 | 无 | SCM do-calculus + Aether 硬锚 |
+| 分布式 | 无 | 向量时钟 + 因果交付 + Fediverse |
+| 密码学 | 无 | Mina SNARK 22KB 证明 + Celo 稳定币 |
+| 神经符号 | EML 静态图谱 | EML-EHNN 等变超图神经网络 |
+
+---
+
+
 
 ## 参考文献 (References)
 

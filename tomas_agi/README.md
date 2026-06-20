@@ -84,6 +84,12 @@ graph TD
 - 🔬 **UnionFind 拟阵回路检测** — O(|E|·α(|V|)) 复杂度，路径压缩 + 按秩合并，较原 O(|E|²) 加速 100-1000×，实测 87.5% 压缩率
 - 🌐 **ChainDB 分布式超图** — 概念哈希分片 + POP 共识协议，HyperShard 架构支持跨分片查询合并，RelationIndex 7 种关系类型
 - 📦 **EML v2.0 格式** — 支持 n 元超边二进制编码（v1.0 仅二元边），向后兼容，可变长度边结构，96B 头部 + 变长边体
+- 🔤 **HNC 同构映射（v2.6）** — 24 字母概念基元编码 + 句类模板 → EML 超边 Schema 映射，NLU 管道 ℐ 贝叶斯更新 + GPCT 层创触发
+- 🤖 **哥德尔智能体（v2.6）** — PG-囚禁硬锚否决权 + 贝叶斯 ℐ 评估 + MUS 双存冲突分支 + κ-Snap 全审计链，四重封边机制
+- 🌌 **Aether 因果世界模型（v2.6）** — SCM do-calculus → EML 超边因果编码，H_hard 硬锚点不可绕过，反事实推理
+- 🌐 **AgentWeb 分布式时序（v2.6）** — 向量时钟因果顺序 + 因果交付级联解锁 + Fediverse/ActivityPub 桥接 + 区块链 κ-Snap Merkle Root 存证
+- 🔐 **密码学桥接（v2.6）** — Mina SNARK 递归证明（22KB 恒定大小，降级本地 SHA-256）+ Celo cUSD/cEUR 稳定币支付（BLS 聚合签名，RPC 超时快速降级）
+- 🧠 **EML-EHNN 等变超图（v2.6）** — ℐ(e) 加权超边前向传播 + MUS-Aware Pooling + κ-Snap 一致性损失 + GPCT 动态输出维度
 
 ---
 
