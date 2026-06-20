@@ -259,8 +259,13 @@ class TestComputeIWeight:
             db.commit()
             db.close()
 
-            # Recalculate ALL rows
-            compute_i_weight(db_path=db_path, dry_run=False, recalculate=True)
+            # Recalculate ALL rows (set i_weight=1.0 to trigger recalculation)
+            conn = sqlite3.connect(db_path)
+            conn.execute("UPDATE knowledge_triples SET i_weight=1.0 WHERE subject='A'")
+            conn.commit()
+            conn.close()
+            
+            compute_i_weight(db_path=db_path, dry_run=False)
 
             db = sqlite3.connect(db_path)
             weights = db.execute("SELECT i_weight FROM knowledge_triples WHERE subject='A' ORDER BY id").fetchall()
