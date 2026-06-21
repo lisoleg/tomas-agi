@@ -153,3 +153,103 @@ class Setting(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(Text, nullable=False)
     value = Column(Text, default="")
+
+
+# ======================= 超图数据模型 (Hypergraph) =======================
+# 基于 TOMAS EML 超图五元组: H = (V, E, ℑ, κ, Asym)
+# 参考: eml_dimred/hyperedge.py, eml_dimred/matroid.py
+# 参考: ChainDB 关系索引范式 (lisoleg/chain-db)
+
+class Vertex(Base):
+    """
+    EML 顶点 — 概念/实体/状态节点
+    对应 eml_dimred/hyperedge.py::EMLVertex
+    """
+    __tablename__ = "vertices"
+    __table_args__ = (
+        UniqueConstraint("concept", name="uq_vertex_concept"),
+        Index("idx_vertex_concept", "concept"),
+        Index("idx_vertex_i_val", "i_val"),
+    )
+
+    vid = Column(Integer, primary_key=True, autoincrement=False)  # 顶点 ID (显式指定)
+    concept = Column(Text, nullable=False, default="")
+    # 八元数 φ 场 (8 个分量, 对应 EMLVertex.phi)
+    phi_b0 = Column(Float, default=0.0)
+    phi_b1 = Column(Float, default=0.0)
+    phi_b2 = Column(Float, default=0.0)
+    phi_b3 = Column(Float, default=0.0)
+    phi_b4 = Column(Float, default=0.0)
+    phi_b5 = Column(Float, default=0.0)
+    phi_b6 = Column(Float, default=0.0)
+    phi_b7 = Column(Float, default=0.0)
+    i_val = Column(Float, default=0.0)           # ℑ(v) — 信息存在度
+    degree_class = Column(Integer, default=0)       # 度类 C_i (按 ℑ 分层)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_vertex_concept", "concept"),
+        Index("idx_vertex_i_val", "i_val"),
+    )
+
+
+class HyperEdge(Base):
+    """
+    EML 超边 — n 元语义关系 (n-ary)
+    对应 eml_dimred/hyperedge.py::HypEdge
+    注: nodes 存为 JSON 数组; 高效节点查询用 hyperedge_nodes junction 表
+    """
+    __tablename__ = "hyperedges"
+
+    eid = Column(Text, primary_key=True)            # 超边唯一标识 (对应 HypEdge.eid)
+    arity = Column(Integer, nullable=False)          # 元数 n (len(nodes))
+    nodes = Column(Text, nullable=False, default="[]")  # JSON 数组: [vid1, vid2, ...]
+    i_val = Column(Float, default=1.0)            # ℑ(e) — 信息存在度 [0, 1]
+    asym = Column(Float, default=0.0)              # Asym — 非结合残联 (0=Boolean, ≠0=MUS-capable)
+    weight = Column(Float, default=1.0)            # 关联权重
+    delta_weight = Column(Float, default=0.0)       # delta_weight
+    source = Column(Integer, default=None)            # 有向边源节点 (None=无向)
+    target = Column(Integer, default=None)            # 有向边目标节点
+    edge_type = Column(Text, default="generic")      # 边类型 (来自 ChainDB 7种 + 自定义)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_hyperedge_i_val", "i_val"),
+        Index("idx_hyperedge_arity", "arity"),
+        Index("idx_hyperedge_type", "edge_type"),
+    )
+
+
+class HyperEdgeNode(Base):
+    """
+    HyperEdge-Vertex junction 表 — 支持高效 "查找包含顶点 X 的所有超边"
+    这是超图数据库的关键索引结构。
+    """
+    __tablename__ = "hyperedge_nodes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    eid = Column(Text, nullable=False, index=True)    # 对应 hyperedges.eid
+    vid = Column(Integer, nullable=False, index=True)  # 对应 vertices.vid
+    position = Column(Integer, default=0)             # 节点在 nodes 元组中的位置
+
+    __table_args__ = (
+        Index("idx_hen_eid_vid", "eid", "vid"),
+        Index("idx_hen_vid", "vid"),
+    )
+
+
+class MatroidCircuit(Base):
+    """
+    拟阵回路缓存表 — 持久化 MUS-Circuit / Paradox-Circuit 检测结果
+    对应 eml_dimred/matroid.py::Matroid.identify_circuits()
+    """
+    __tablename__ = "matroid_circuits"
+
+    circuit_id = Column(Text, primary_key=True)         # 回路唯一标识
+    edge_ids = Column(Text, nullable=False)             # JSON 数组: [eid1, eid2, ...]
+    circuit_type = Column(Text, nullable=False)         # 'MUS' | 'Paradox'
+    detected_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_circuit_type", "circuit_type"),
+    )

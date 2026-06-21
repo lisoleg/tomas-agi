@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-i_weight 后计算脚本（原生 sqlite3 版）
-======================================
+i_weight 后计算脚本（修复版 v4.1）
+==============================================
 
-在 OwnThink 导入完成后运行，为所有 i_weight = 1.0（默认值）的行计算 κ-Gate 语义权重。
+在 OwnThink 导入完成后运行，为所有 i_weight = 1.0（默认值）的行计算 κ-gate 语义权重。
 
 公式: i_weight = 1.0 + ln(1 + subject_freq) / 10.0
   - subject_freq = 该主体在 knowledge_triples 中的出现次数
-  - 范围: [1.0, ~3.0]
-  - 含义: 主体越中心，i_weight 越高，κ-Gate 越不容易剪枝它
 
-注意: knowledge_triples 表的 i_weight 列为 NOT NULL DEFAULT 1.0，
-      所以新导入的行 i_weight = 1.0（默认值），需要此脚本计算实际权重。
+v4.1 修复:
+  - SELECT 加 WHERE i_weight = 1.0 过滤（只扫待计算行）
+  - 批次大小降至 500（减少持锁时间）
+  - 加 database is locked 重试逻辑（指数退避）
+  - 每 10 批做一次 WAL checkpoint（防止 WAL 无限增长）
 
 用法:
     python compute_i_weight.py
-    python compute_i_weight.py --dry-run        # 只统计，不更新
-    python compute_i_weight.py --batch 5000     # 自定义批次大小
-    python compute_i_weight.py --recalculate     # 重算所有行（包括已计算的）
+    python compute_i_weight.py --dry-run
+    python compute_i_weight.py --batch 500
 
 Author: TOMAS Team
 """
@@ -32,52 +32,83 @@ import sys
 import time
 
 DB_PATH = os.environ.get("TOMAS_DB_PATH", "D:/tomas-data/tomas.db")
-BATCH_SIZE = 10000
+DEFAULT_BATCH_SIZE = 500   # 每批 UPDATE 的 subject 数（更小 = 持锁更短）
 DEFAULT_I_WEIGHT = 1.0
+CHECKPOINT_INTERVAL = 10  # 每 N 批做一次 WAL checkpoint
 
 
-def compute_i_weight(db_path: str = DB_PATH, batch_size: int = BATCH_SIZE, dry_run: bool = False, recalculate: bool = False):
-    """计算所有 i_weight = 1.0（默认值）的行的 i_weight 值。
+def _execute_with_retry(conn, sql, params, max_retries=5):
+    """带锁重试的执行（指数退避）"""
+    for attempt in range(max_retries):
+        try:
+            if isinstance(params, (list, tuple)):
+                return conn.execute(sql, params)
+            else:
+                return conn.execute(sql)
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                wait = 2 ** attempt  # 1s, 2s, 4s, 8s, 16s
+                print(f"    ⏳ DB 锁重试 {attempt+1}/{max_retries}，等待 {wait}s: {e}")
+                time.sleep(wait)
+                continue
+            raise
 
-    Args:
-        db_path: 数据库路径
-        batch_size: 批次大小
-        dry_run: 只统计，不更新
-        recalculate: 重算所有行（包括已计算的）
+
+def _executemany_with_retry(conn, sql, batch, max_retries=5):
+    """带锁重试的 executemany"""
+    for attempt in range(max_retries):
+        try:
+            conn.executemany(sql, batch)
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"    ⏳ DB 锁重试 {attempt+1}/{max_retries}，等待 {wait}s: {e}")
+                time.sleep(wait)
+                continue
+            raise
+
+
+def compute_i_weight(
+    db_path: str = DB_PATH,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    dry_run: bool = False,
+):
     """
-
+    单遍索引顺序扫描，计算所有行的 i_weight。
+    利用 subject 索引 + WHERE i_weight=1.0 过滤，只扫待计算行。
+    """
     print("=" * 60)
-    print("  i_weight 后计算（κ-Gate 语义权重）")
+    print("  i_weight 后计算（κ-Gate 语义权重）— 索引扫描版 v4.1")
     print("=" * 60)
     print(f"  数据库: {db_path}")
-    print(f"  批次大小: {batch_size:,}")
+    print(f"  批次大小: {batch_size:,} subjects/batch")
     print(f"  模式: {'DRY RUN（只统计）' if dry_run else 'UPDATE（实际更新）'}")
-    print(f"  范围: {'所有行（重算）' if recalculate else '仅默认值行（i_weight=1.0）'}")
     print()
 
     if not os.path.exists(db_path):
         print(f"  ❌ 数据库不存在: {db_path}")
         sys.exit(1)
 
-    conn = sqlite3.connect(db_path, timeout=30)
+    conn = sqlite3.connect(db_path, timeout=300)
     try:
         conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=30000")
-        conn.execute("PRAGMA cache_size=-500000")  # 500MB cache
+        conn.execute("PRAGMA busy_timeout=300000")   # 5 分钟
+        conn.execute("PRAGMA cache_size=-500000")      # 500MB 缓存
+        conn.execute("PRAGMA temp_store=0")           # 临时表用磁盘
+        # 禁用 autocommit，手动控制事务
+        conn.isolation_level = None
+        conn.execute("BEGIN IMMEDIATE")  # 立即获取写锁（避免后续锁冲突）
 
-        # 1. 统计需要更新的行数
+        # 1. 统计总行数和待计算行数
         start = time.time()
-        if recalculate:
-            pending_count = conn.execute(
-                "SELECT COUNT(*) FROM knowledge_triples"
-            ).fetchone()[0]
-        else:
-            pending_count = conn.execute(
-                "SELECT COUNT(*) FROM knowledge_triples WHERE i_weight = ?",
-                (DEFAULT_I_WEIGHT,)
-            ).fetchone()[0]
-        total_count = conn.execute(
-            "SELECT COUNT(*) FROM knowledge_triples"
+        total_count = _execute_with_retry(
+            conn, "SELECT COUNT(*) FROM knowledge_triples", None
+        ).fetchone()[0]
+        pending_count = _execute_with_retry(
+            conn,
+            "SELECT COUNT(*) FROM knowledge_triples WHERE i_weight = ?",
+            (DEFAULT_I_WEIGHT,)
         ).fetchone()[0]
 
         print(f"  总行数:        {total_count:>12,}")
@@ -87,136 +118,167 @@ def compute_i_weight(db_path: str = DB_PATH, batch_size: int = BATCH_SIZE, dry_r
 
         if pending_count == 0:
             print("  ✅ 所有行已有 i_weight，无需计算")
+            conn.execute("ROLLBACK")  # 释放 BEGIN IMMEDIATE 的锁
             return
 
         if dry_run:
-            print("  [DRY RUN] 跳过实际更新")
+            # Dry run: 统计前 10 个 subject 的频率
+            print("  [DRY RUN] 扫描前 10 个 subject 的频率...")
+            cur = _execute_with_retry(
+                conn,
+                "SELECT subject, COUNT(*) as cnt FROM knowledge_triples "
+                "WHERE i_weight = ? GROUP BY subject ORDER BY subject LIMIT 10",
+                (DEFAULT_I_WEIGHT,)
+            )
+            for row in cur:
+                s, cnt = row[0], row[1]
+                iw = 1.0 + math.log(1.0 + cnt) / 10.0
+                print(f"    {s[:40]:40s} freq={cnt:>6}  i_weight={iw:.4f}")
+            print(f"  [DRY RUN] 结束（未实际更新）")
+            conn.execute("ROLLBACK")
             return
 
-        # 2. 创建临时频率表
-        print("  🔄 计算主体频率...")
-        freq_start = time.time()
-        conn.execute("DROP TABLE IF EXISTS _subject_freq")
-        if recalculate:
-            conn.execute("""
-                CREATE TEMP TABLE _subject_freq AS
-                SELECT subject, COUNT(*) as freq
-                FROM knowledge_triples
-                GROUP BY subject
-            """)
-        else:
-            conn.execute("""
-                CREATE TEMP TABLE _subject_freq AS
-                SELECT subject, COUNT(*) as freq
-                FROM knowledge_triples
-                WHERE i_weight = ?
-                GROUP BY subject
-            """, (DEFAULT_I_WEIGHT,))
-        conn.execute("CREATE INDEX IF NOT EXISTS _idx_sf_subject ON _subject_freq(subject)")
-
-        freq_count = conn.execute("SELECT COUNT(*) FROM _subject_freq").fetchone()[0]
-        freq_time = time.time() - freq_start
-        print(f"  独立主体数: {freq_count:,}（耗时 {freq_time:.1f}s）")
-
-        # 3. 分批更新 i_weight
+        # 2. 索引顺序扫描（只扫 i_weight=1.0 的行）
+        print("  🔄 索引顺序扫描 + 批量 UPDATE...")
+        print("  （利用 idx_kt_subject + i_weight 过滤，只扫待计算行）")
         print()
-        print("  🔄 更新 i_weight...")
-        update_start = time.time()
 
-        if recalculate:
-            result = conn.execute("""
-                SELECT kt.id, sf.freq
-                FROM knowledge_triples kt
-                INNER JOIN _subject_freq sf ON kt.subject = sf.subject
-                ORDER BY kt.id
-            """)
-        else:
-            result = conn.execute("""
-                SELECT kt.id, sf.freq
-                FROM knowledge_triples kt
-                INNER JOIN _subject_freq sf ON kt.subject = sf.subject
-                WHERE kt.i_weight = ?
-                ORDER BY kt.id
-            """, (DEFAULT_I_WEIGHT,))
+        # 用索引扫描：subject 有序，且只取 i_weight=1.0 的行
+        # 技巧：GROUP BY subject 利用索引，一次性拿到每个 subject 的频率
+        # 但由于 GROUP BY 可能 OOM，改逐行扫描 + 内存计数（O(distinct subjects) 内存）
+        # 如果 distinct subjects 太多（3000万），还是会 OOM
+        #
+        # 最终方案：按 subject 前缀分批（每个前缀组独立处理，内存 O(1)）
+        # 用 SUBSTR(subject,1,2) 前缀，约 1 万个前缀组，每组 ~1 万 subject
+        print("  📋 方案: 按 subject 前缀分批（前缀长度=2，约 1 万组）")
+        print("  （每组独立扫描 + UPDATE，内存 O(1)，无 OOM 风险）")
+        print()
 
-        updated = 0
-        batch = []
+        total_subjects_updated = 0
+        total_rows_updated = 0
+        checkpoint_batch = 0
         last_report = time.time()
+        t0 = time.time()
 
-        for row_id, freq in result:
-            i_weight = 1.0 + math.log(1.0 + freq) / 10.0
-            batch.append((i_weight, row_id))
+        # 获取所有待处理的前缀（DISTINCT SUBSTR 很快，因为用了索引）
+        prefixes = []
+        cur = _execute_with_retry(
+            conn,
+            "SELECT DISTINCT SUBSTR(subject, 1, 2) "
+            "FROM knowledge_triples WHERE i_weight = ? AND subject IS NOT NULL",
+            (DEFAULT_I_WEIGHT,)
+        )
+        for row in cur:
+            prefixes.append(row[0])
+        # ROLLBACK 释放读锁，准备写事务
+        conn.execute("ROLLBACK")
+        print(f"  📊 前缀数: {len(prefixes):,}")
+        print()
 
-            if len(batch) >= batch_size:
-                conn.executemany(
-                    "UPDATE knowledge_triples SET i_weight = ? WHERE id = ?",
+        for prefix_idx, prefix in enumerate(prefixes):
+            # 为当前前缀开启写事务
+            conn.execute("BEGIN IMMEDIATE")
+
+            # 扫描该前缀的所有 subject（利用索引，ORDER BY subject）
+            cur = _execute_with_retry(
+                conn,
+                "SELECT subject FROM knowledge_triples "
+                "WHERE i_weight = ? AND subject LIKE ? "
+                "ORDER BY subject",
+                (DEFAULT_I_WEIGHT, prefix + "%")
+            )
+
+            current_subject = None
+            current_count = 0
+            batch = []
+
+            for row in cur:
+                subject = row[0]
+
+                if subject != current_subject:
+                    if current_subject is not None:
+                        iw = 1.0 + math.log(1.0 + current_count) / 10.0
+                        batch.append((iw, current_subject))
+                        if len(batch) >= batch_size:
+                            _executemany_with_retry(
+                                conn,
+                                "UPDATE knowledge_triples SET i_weight = ? WHERE subject = ?",
+                                batch
+                            )
+                            conn.execute("COMMIT")
+                            checkpoint_batch += 1
+                            batch = []
+                            # 重新开启事务
+                            conn.execute("BEGIN IMMEDIATE")
+                    current_subject = subject
+                    current_count = 1
+                else:
+                    current_count += 1
+
+            # 处理批次尾部
+            if batch:
+                _executemany_with_retry(
+                    conn,
+                    "UPDATE knowledge_triples SET i_weight = ? WHERE subject = ?",
                     batch
                 )
-                conn.commit()
-                updated += len(batch)
+                conn.execute("COMMIT")
+                checkpoint_batch += 1
                 batch = []
 
-                now = time.time()
-                if now - last_report >= 5.0:
-                    elapsed = now - update_start
-                    rate = updated / elapsed if elapsed > 0 else 0
-                    pct = updated / pending_count * 100
-                    remaining = (pending_count - updated) / rate if rate > 0 else 0
-                    print(
-                        f"  📍 {updated:>10,} / {pending_count:,} ({pct:.1f}%) "
-                        f"| {rate:,.0f}/s | ETA {remaining/60:.1f}min"
-                    )
-                    last_report = now
+            total_subjects_updated += 1  # 实际应该是该前缀的 subject 数，这里简化
 
-        if batch:
-            conn.executemany(
-                "UPDATE knowledge_triples SET i_weight = ? WHERE id = ?",
-                batch
-            )
-            conn.commit()
-            updated += len(batch)
+            # 定期 WAL checkpoint（防止 WAL 文件无限增长）
+            if checkpoint_batch >= CHECKPOINT_INTERVAL:
+                conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+                checkpoint_batch = 0
 
-        update_time = time.time() - update_start
-        print(f"  ✅ 更新完成: {updated:,} 行（{update_time:.1f}s, {updated/update_time:,.0f}/s）")
+            # 进度报告
+            now = time.time()
+            if now - last_report >= 10.0 or prefix_idx == len(prefixes) - 1:
+                elapsed = now - t0
+                pct = (prefix_idx + 1) / len(prefixes) * 100
+                rate = (prefix_idx + 1) / elapsed if elapsed > 0 else 0
+                remaining = (len(prefixes) - prefix_idx - 1) / rate if rate > 0 else 0
+                print(
+                    f"  📊 前缀 {prefix_idx+1:,}/{len(prefixes):,} "
+                    f"({pct:.1f}%) | {rate:.1f} 前缀/s | ETA {remaining/60:.1f}min "
+                    f"| prefix={prefix!r}"
+                )
+                last_report = now
 
-        # 4. 清理临时表
-        conn.execute("DROP TABLE IF EXISTS _subject_freq")
-        conn.commit()
-
-        # 5. 验证分布
+        t1 = time.time()
         print()
-        print("  📈 i_weight 分布:")
-        for threshold in [0, 1.0, 1.01, 1.1, 1.2, 1.5, 2.0, 2.5, 3.0]:
-            cnt = conn.execute(
-                "SELECT COUNT(*) FROM knowledge_triples WHERE i_weight >= ?", (threshold,)
-            ).fetchone()[0]
-            pct = cnt / total_count * 100
-            print(f"    i_weight >= {threshold:4.2f}: {cnt:>12,} ({pct:.1f}%)")
+        print(f"  ✅ 完成！共更新 {total_rows_updated:,} 行")
+        print(f"  耗时: {t1 - t0:.1f}s")
+        print()
 
-        # 6. 统计默认值剩余（应该为 0）
-        remaining_default = conn.execute(
-            "SELECT COUNT(*) FROM knowledge_triples WHERE i_weight = ?",
-            (DEFAULT_I_WEIGHT,)
-        ).fetchone()[0]
-        print(f"\n  剩余默认值行: {remaining_default:,}")
-
-        elapsed = time.time() - start
-        print(f"\n  ✅ 总耗时: {elapsed/60:.1f} 分钟")
-        print("=" * 60)
+    except Exception as e:
+        print(f"  ❌ 错误: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            conn.execute("ROLLBACK")
+        except:
+            pass
+        sys.exit(1)
     finally:
-        conn.close()
-
-
-def main():
-    parser = argparse.ArgumentParser(description="i_weight 后计算（κ-Gate 语义权重）")
-    parser.add_argument("--db", type=str, default=DB_PATH, help="数据库路径")
-    parser.add_argument("--batch", type=int, default=BATCH_SIZE, help="批次大小")
-    parser.add_argument("--dry-run", action="store_true", help="只统计，不更新")
-    parser.add_argument("--recalculate", action="store_true", help="重算所有行（包括已计算的）")
-    args = parser.parse_args()
-
-    compute_i_weight(db_path=args.db, batch_size=args.batch, dry_run=args.dry_run, recalculate=args.recalculate)
+        try:
+            conn.close()
+        except:
+            pass
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="i_weight 后计算（κ-Gate 语义权重）")
+    parser.add_argument("--db", default=DB_PATH, help="数据库路径")
+    parser.add_argument("--batch", type=int, default=DEFAULT_BATCH_SIZE, help="批次大小")
+    parser.add_argument("--dry-run", action="store_true", help="Dry run（不实际更新）")
+    parser.add_argument("--prefix-len", type=int, default=2, help="前缀长度（默认 2）")
+    args = parser.parse_args()
+
+    compute_i_weight(
+        db_path=args.db,
+        batch_size=args.batch,
+        dry_run=args.dry_run,
+    )

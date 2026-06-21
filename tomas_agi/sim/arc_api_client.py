@@ -3,30 +3,18 @@
 ARC-AGI-3 API Client for TOMAS
 ==============================
 
-Fetches real ARC-AGI-3 game environments from the Arc Prize API.
-Requires ARC_API_KEY from https://arcprize.org/
+**UPDATED v2.0**: Now delegates to the official arc-agi Python package.
+The old REST API endpoints (arcprize.org/api/games/{id}/start) are deprecated.
+
+For building static datasets, use: arc_agi3_dataset_builder.py
+For evaluation, use: arc_agi3_eval.py
 
 Usage:
-    # Set API key
-    export ARC_API_KEY=your_key_here
-
-    # Fetch all 25 environments and save as dataset
-    python arc_api_client.py --output data/arc_agi3_public.json
-
-    # Fetch specific game
+    python arc_api_client.py --list-games
     python arc_api_client.py --game ls20 --output data/arc_agi3_ls20.json
 
-    # List available games (requires API key)
-    python arc_api_client.py --list-games
-
-API Reference (from arcprize/arc-agi-3-benchmarking):
-    - GET  /api/games          -> list of game IDs
-    - POST /api/games/{id}/start -> create environment, get initial frame
-    - POST /api/games/{id}/step  -> submit action, get next frame
-    - Frame format: 64x64 grid, values 0-15 (16 colors)
-
 Author: TOMAS Team
-Version: v1.0
+Version: v2.0
 """
 
 from __future__ import annotations

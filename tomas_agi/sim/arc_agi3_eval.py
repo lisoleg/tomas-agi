@@ -33,11 +33,34 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
 import time
 from dataclasses import dataclass, field as dc_field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+
+# ── .env 加载 ─────────────────────────────────────────────────────
+def _load_env():
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' in line:
+                key, _, val = line.partition('=')
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+
+_load_env()
+
+DEEPSEEK_API_BASE = "https://api.deepseek.com/v1"
+DEEPSEEK_MODEL = "deepseek-chat"
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +90,21 @@ class ActionType(Enum):
     KEY_SPACE = "key_space"
     UNDO = "undo"
     CELL_SELECT = "cell_select"  # Requires (x, y) coordinates
+    # Real ARC-AGI-3 API GameAction enum values (v2.0+)
+    ACTION1 = "ACTION1"
+    ACTION2 = "ACTION2"
+    ACTION3 = "ACTION3"
+    ACTION4 = "ACTION4"
+    ACTION5 = "ACTION5"
+    ACTION6 = "ACTION6"
+    ACTION7 = "ACTION7"
+    ACTION8 = "ACTION8"
+    ACTION9 = "ACTION9"
+    ACTION10 = "ACTION10"
+
+
+# Set of known action strings for quick lookup
+_VALID_ACTION_STRS = frozenset(a.value for a in ActionType)
 
 
 # ============================================================
@@ -212,6 +250,10 @@ class ARCAgi3Environment:
                     is_invalid=True,
                     metadata={"reason": "out_of_bounds"},
                 )
+        elif action.startswith("ACTION"):
+            # Real ARC-AGI-3 GameAction enum values (ACTION1-ACTION10)
+            # In dry-run mode, treat as no-op (actual game mechanics in .py files)
+            new_grid = self._apply_action_to_grid(new_grid, action, level)
         else:
             return ActionResult(
                 next_frame=Frame(grid=new_grid),
@@ -263,6 +305,10 @@ class ARCAgi3Environment:
             dx = 1
         elif action == "key_space":
             # Space: context-dependent (e.g., interact, jump)
+            pass
+        elif action.startswith("ACTION"):
+            # Real ARC-AGI-3 GameAction: counted but no-op in simulation
+            # Actual game mechanics are in downloaded .py game files
             pass
 
         if dx != 0 or dy != 0:
@@ -483,16 +529,19 @@ class ARCAGI3Evaluator:
         tomas_api_url: str = "http://localhost:5000",
         action_budget_multiplier: int = ACTION_BUDGET_MULTIPLIER,
         verbose: bool = True,
+        api_key: str = "",
     ):
         """
         Args:
-            tomas_api_url: TOMAS inference API URL
+            tomas_api_url: TOMAS inference API URL (unused with DeepSeek mode)
             action_budget_multiplier: Max actions = multiplier * human_baseline
             verbose: Print detailed progress
+            api_key: DeepSeek API key (auto-loaded from .env if empty)
         """
         self.tomas_api_url = tomas_api_url
         self.action_budget_multiplier = action_budget_multiplier
         self.verbose = verbose
+        self.api_key = api_key or os.environ.get('DEEPSEEK_API_KEY', '')
         self.results: List[EnvironmentResult] = []
 
     def load_dataset(self, dataset_path: str) -> List[Dict]:
@@ -623,20 +672,36 @@ class ARCAGI3Evaluator:
             f"Your action:"
         )
 
+        # Skip API call if no API key (dry-run mode)
+        if not self.api_key:
+            action = random.choice(valid_actions)
+            params = {"x": random.randint(0, GRID_SIZE - 1), "y": random.randint(0, GRID_SIZE - 1)} if action == "cell_select" else None
+            return action, params
+
         try:
             import requests
 
             resp = requests.post(
-                f"{self.tomas_api_url}/api/chat",
+                f"{DEEPSEEK_API_BASE}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
                 json={
-                    "message": user_prompt,
-                    "system_prompt": SYSTEM_PROMPT,
-                    "use_eml": False,  # ARC-AGI-3 doesn't use EML knowledge
+                    "model": DEEPSEEK_MODEL,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 256,
+                    "stream": False,
                 },
                 timeout=30,
             )
+            resp.raise_for_status()
             data = resp.json()
-            raw_response = data.get("response", "")
+            raw_response = data["choices"][0]["message"]["content"]
 
             # Parse action from response
             action, params = self._parse_action(raw_response, valid_actions)
@@ -877,12 +942,13 @@ if __name__ == "__main__":
     evaluator = ARCAGI3Evaluator(
         tomas_api_url=args.api_url,
         verbose=args.verbose,
+        api_key=os.environ.get('DEEPSEEK_API_KEY', ''),
     )
 
     if args.dry_run:
         # Dry run: simulate with random actions
         print("🏃 Dry run mode (random actions, no API calls)")
-        evaluator.tomas_api_url = "http://localhost:99999"  # Will trigger fallback
+        evaluator.api_key = ""  # Disable DeepSeek API → trigger random fallback
 
     report = evaluator.evaluate_dataset(args.dataset, max_envs=args.max_envs)
 
