@@ -51,3 +51,13 @@ tmp/
 temp/
 *.tmp
 tomas_agi/data/tcci_logs/
+
+# Project data (large files, do not commit)
+tomas_agi/data/
+tomas_agi/sim/data/
+tomas_agi/sim/results/
+*.tsbuildinfo
+nul
+fix_tshield_indent.py
+rebuild_tshield.py
+test_hyperindex.py

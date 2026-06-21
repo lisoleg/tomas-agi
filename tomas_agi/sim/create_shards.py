@@ -146,9 +146,10 @@ def main():
     parser.add_argument("--shards", type=int, default=4, help="分片数（默认4）")
     parser.add_argument("--sample", type=int, default=100000, help="采样大小（默认100K）")
     parser.add_argument("--full", action="store_true", help="全量分片（101M triples，耗时较长）")
+    parser.add_argument("--yes", "-y", action="store_true", help="跳过确认提示（非交互模式）")
     args = parser.parse_args()
     
-    if args.full:
+    if args.full and not args.yes:
         confirm = input(f"⚠️  全量分片 {args.shards} shards × 101M triples，预计耗时>30分钟。确认? (y/N): ")
         if confirm.lower() != 'y':
             print("取消")
