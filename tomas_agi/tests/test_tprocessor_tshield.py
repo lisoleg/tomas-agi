@@ -11,12 +11,12 @@ import pytest
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from tomas_agi.sim.tprocessor_sim import (
+from sim.tprocessor_sim import (
     RRAMCrossbar, DeadZeroComparator, MUSArbiter, KSnapScheduler,
     TProcessorV1, HyperEdgeState, DZLevel, MUSStatus,
     SiliconPhotonicsInterface
 )
-from tomas_agi.sim.tshield_wrapper import (
+from sim.tshield_wrapper import (
     TShieldWrapper, DeadZeroGraft, MUSBoxMarker, KSnapScheduler as KSnapTShield,
     ISceneEstimator, DetectionBox, SceneAssessment
 )

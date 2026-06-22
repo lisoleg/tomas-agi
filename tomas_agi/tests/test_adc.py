@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import pytest
 import json
 
-from tomas_agi.sim.dead_zero_mus import DeadZeroMUSGate
-from tomas_agi.sim.adc_test import (
+from sim.dead_zero_mus import DeadZeroMUSGate
+from sim.adc_test import (
     ADCTestRunner, ADCTestReport, ADCTestCase, ADCTestResult,
     DEFAULT_ADC_CASES,
 )

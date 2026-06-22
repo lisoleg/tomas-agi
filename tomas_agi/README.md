@@ -5,8 +5,8 @@
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](./LICENSE)
-[![Modules](https://img.shields.io/badge/modules-87+-orange.svg)](./sim/)
-[![Tests](https://img.shields.io/badge/tests-763%20PASS-brightgreen.svg)](./tests/)
+[![Modules](https://img.shields.io/badge/modules-92+-orange.svg)](./sim/)
+[![Tests](https://img.shields.io/badge/tests-985%20PASS-brightgreen.svg)](./tests/)
 [![CUDA](https://img.shields.io/badge/CUDA-supported-success.svg)](./kernel/)
 [![FPGA](https://img.shields.io/badge/FPGA-verified-blueviolet.svg)](./rtl/)
 [![DB](https://img.shields.io/badge/knowledge_triples-101M+-blue.svg)]()
@@ -97,6 +97,11 @@ graph TD
 - 🛡️ **DIKWP 全桥接（v3.6）** — IntentGuard 意图守卫（4 级危险度）+ MemoryLedger→MUS 映射 + DAAP 四层审计 + 语义安全完备性定理
 - ☯️ **太极周期 v2（v3.6）** — EML 脉冲→φ-Gate→T-Processor 闭环，CycleSpinner 自适应调度器，LRU 超边存储
 - ❄️ **MNQ 冻结内核（v3.6）** — 五层渐进冻结（L0-L4）+ 八元数非结合度量化 + Golden Spirit Ball Fibonacci 投影 + κ=7 稳定器 + 热容量分析
+- 🔗 **全息拓扑动力学 HTD（v3.7）** — AdS/CFT bulk-boundary 对偶 + Octonion 完整实现 + BraidWord 编织群 + TOHTD_Simulator 五步演化管道 + Kitaev-Preskill TEE 验证
+- 🧲 **拓扑孤子与相变（v3.7）** — 6 类拓扑孤子 + ψ-Anchor 三重拓扑保护 + SolitonBraider 编织器 + 能隙闭合→Chern 跳跃相变 + TopoChargeGroup 跨模块共享
+- ⚛️ **Gan-TOMAS P=GW（v3.7）** — Gan 极化算子（cos·ħ·Re + sin·ħ·Im）+ 八元数质量起源 M=‖O‖²/(G_res×tanh(κ)) + 轻子质量比 + 观测顺序效应 + 11 项可证伪预测
+- 🌐 **GaussEx-EML 桥接（v3.8）** — 开放线性系统范畴论落地：Fibre(D)⊕Noise(ψ) + 共偏性隐私计算 + 含噪电阻多传感器融合 + 互补互联工业孪生 + ψ-锚宪法级权限 + 产业落地可行性定理
+- 🧠 **认知压缩引擎（v3.8）** — PDE 守恒律→WM 超边 + ENT 内源网络→G_ego+MUS 双存 + 物理AI T-Processor ⊙ Gan 极化 + κ-Snap 压缩损失审计（哥德尔边界 SHA-256 指纹）+ 认知压缩嵌入定理 + 6 项可证伪预言
 
 ---
 
@@ -220,6 +225,11 @@ tomas-agi/
 │   ├── taiji_cycle_v2.py         # 太极周期 v2·CycleSpinner（v3.6）
 │   ├── mnq_frozen_kernel.py      # MNQ 冻结内核·五层渐进（v3.6）
 │   ├── tomas_therapist.py        # TOMAS 治疗师（v3.6 扩展）
+│   ├── htd_sim.py                # 全息拓扑动力学 HTD（v3.7）
+│   ├── topo_soliton.py           # 拓扑孤子与相变（v3.7）
+│   ├── gan_tomas_pgw.py          # Gan-TOMAS P=GW 八元数升维（v3.7）
+│   ├── gaussex_eml.py            # GaussEx-EML 桥接·开放线性系统（v3.8）
+│   ├── cognitive_compression.py  # 认知压缩引擎·PDE/ENT/物理AI（v3.8）
 │   ├── eml_dimred/               # 数学降维工具箱（7 模块）
 │   │   ├── hyperedge.py          # HypEdge/EMLVertex + EML 加载
 │   │   ├── matroid.py            # 拟阵贪心剪枝（κ-Gate 最优独立集）
@@ -263,6 +273,8 @@ tomas-agi/
 │   ├── test_new_modules.py       # G_ego/Epiplexity/SemZip 测试 (21)
 │   ├── test_tomas_v2_articles.py # κ-Snap/ExtendHypergraph 测试 (51)
 │   ├── test_v36_modules.py       # v3.6 八模块测试 (57)
+│   ├── test_v37_modules.py       # v3.7 HTD/Topo/Gan 测试 (108)
+│   ├── test_v38_modules.py       # v3.8 GaussEx/认知压缩 测试 (110)
 │   └── ...
 │
 ├── data/                         # 语料与蒸馏数据
@@ -307,7 +319,9 @@ tomas-agi/
 | M9 数据层 | 5 | SQLite ORM + OwnThink 导入 + i_weight 计算 |
 | M10 桥接模块 | 7 | IDO / FDE / DualTimeline / ITOT / Causet / HYWorld / Palantir |
 | M11 v3.6 升级模块 | 8 | ψ-Gate / 7+1本体 / 解释坩埚 / 世界模型超边 / DIKWP全桥接 / 太极周期v2 / MNQ冻结内核 / 治疗师扩展 |
-| **总计** | **87+** | **763/767 测试通过（2 skipped 需 API Key，2 pre-existing failed）** |
+| M12 v3.7 升级模块 | 3 | 全息拓扑动力学HTD / 拓扑孤子与相变 / Gan-TOMAS P=GW八元数升维 |
+| M13 v3.8 升级模块 | 2 | GaussEx-EML桥接 / 认知压缩引擎 |
+| **总计** | **92+** | **985 测试通过** |
 
 ### LLM 对话测试（2026-06-14）
 

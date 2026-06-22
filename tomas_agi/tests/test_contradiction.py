@@ -14,7 +14,7 @@ import pytest
 
 sys.path.insert(0, '.')
 
-from tomas_agi.sim.contradiction_detector import ContradictionDetector, SPO
+from sim.contradiction_detector import ContradictionDetector, SPO
 
 
 # ============================================================

@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, '.')
 
 # 导入 TOMAS 模块
-from tomas_agi.sim.dead_zero_mus import (
+from sim.dead_zero_mus import (
     DeadZeroChecker,
     MUSArbitrator,
     KSnapDecider,

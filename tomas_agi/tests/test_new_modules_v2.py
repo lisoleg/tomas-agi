@@ -90,10 +90,10 @@ class TestComputeIWeight:
 
     def test_import(self):
         """Module imports successfully."""
-        from compute_i_weight import compute_i_weight, DB_PATH, BATCH_SIZE, DEFAULT_I_WEIGHT
+        from compute_i_weight import compute_i_weight, DB_PATH, DEFAULT_BATCH_SIZE, DEFAULT_I_WEIGHT
         assert callable(compute_i_weight)
         assert "tomas.db" in DB_PATH or DB_PATH
-        assert BATCH_SIZE > 0
+        assert DEFAULT_BATCH_SIZE > 0
         assert DEFAULT_I_WEIGHT == 1.0
 
     def test_dry_run_on_small_db(self):

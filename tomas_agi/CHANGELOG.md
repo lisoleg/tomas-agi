@@ -1,5 +1,43 @@
 # Changelog
 
+## [v3.8] - 2026-06-22
+
+### Added
+- **v3.8 GaussEx-EML Bridge + 认知压缩引擎升级**（基于复合体理学 2 篇微信公众号文章）：
+  - **GaussEx-EML 桥接**：`gaussex_eml.py`（~650 行）—— 开放线性系统范畴论（Stein & Samuelson 2025）在 TOMAS EML-KB 上的工程落地。GaussExSystem = Fibre(D) ⊕ Noise(ψ) 开放系统表示，CopartialMap 共偏性观测（Borel 柱体投影、隐私计算、零原始数据暴露），Interconnection 范畴组合律（Fibre 交集 + Noise 卷积），NoisyResistor 含噪电阻（Stein 经典示例，自动驾驶多传感器逆方差融合），CopartialRiskControl 共偏性风控（跨行联合风控沙盒、JSON-LD 架构），ComplementaryInterconnection 互补互联（工业数字孪生 RUL 预测），GaussExPsiAnchor ψ-锚宪法级权限（CONSTITUTIONAL/REGULATORY/OPERATIONAL 三级），GaussExKSnapRecord κ-Snap 审计，GaussEx 可证伪预言 P17-P19，IndustrialFeasibilityTheorem 产业落地可行性定理（多项式时间复杂度）
+  - **认知压缩引擎**：`cognitive_compression.py`（~700 行）—— "从微积分到世界模型"认知压缩嵌入 EML-KB。PDEConservationLaw PDE 守恒律（质量/动量/能量/粒子/电荷 → ψ-锚宪法级规则），WMHyperedgePDE PDE 确定性骨架结构化存储（非黑箱 latent、JSON-LD Appendix A 格式），ENTBioNetwork ENT 内源性网络（基因调控/代谢回路、生物 ψ-锚 ATP/膜电位/pH/凋亡），MUSEndogenousConflict MUS 双存（ENT 内源竞争 A5 公理、Appendix B 日志格式），PhysicalAIEngine 物理AI 引擎（T-Processor ⊙(e_PDE, e_Data) Gan 极化、κ 大→信物理/κ 小→跟数据），CompressionLossKSnap κ-Snap 压缩损失审计（哥德尔边界、SHA-256 丢弃模态指纹、Appendix C 格式），CognitiveCompressionEmbedding 认知压缩嵌入定理（L1 全量阿卡西/L3 世界帧/ψ-锚/κ-Snap 四要素），认知压缩可证伪预言 P14-P16
+  - **跨模块集成**：cognitive_compression 从 gaussex_eml 导入 GaussExSystem/Fibre/GaussianNoise 等共享类型，GaussEx 系统作为 PhysicalAIEngine 的 Data Stream 数据源，4 项跨模块集成测试
+- 新增 2 个模块文件，~1,350 行代码
+- 新增 110 个测试用例（`test_v38_modules.py`，22 测试类），110/110 全部通过
+- 新增 6 项可证伪预言（P14-P16 认知压缩, P17-P19 GaussEx）
+- 累计模块数 90 → 92，累计测试数 875 → 985
+
+### Changed
+- paper.md 版本号 v3.7 → v3.8（待更新）
+- README.md：更新模块数（90→92）、测试数（875→985）（待更新）
+
+---
+
+## [v3.7] - 2026-06-22
+
+### Added
+- **v3.7 HTD + 拓扑孤子 + Gan-TOMAS P=GW 升级**（基于复合体理学 3 篇微信公众号文章）：
+  - **全息拓扑动力学 HTD**：`htd_sim.py`（~800 行）—— AdS/CFT bulk-boundary 对偶在 EML-KB 中的实现，Octonion 完整实现（`e_0..e_7`）+ Moufang 乘法，BraidWord 形式化编织群（B_n, σ_i^{±1}，Unicode/ASCII 双格式解析），TopologicalOrderState（Chern/D/γ/Kitaev-Preskill），TOHTD_Simulator 五步演化管道（Read Bulk → Braid → Post-Select → κ-Snap → TEE 验证），TopoChargeGroup 共享枚举，FQHE ν=1/3 示例，HTD 可证伪预测 P10-P11
+  - **拓扑孤子与相变**：`topo_soliton.py`（~550 行）—— 6 类拓扑孤子（Abrikosov Vortex/Skyrmion/Domain Wall/Majorana Zero Mode/Instanton/Meron），ψ-Anchor 三重拓扑保护（电荷守恒/能隙/编织相位），SolitonBraider（braid_pair/braid_sequence/associator/braiding_phase），TOMAS_Topology_Simulator（strain/B-field 扰动 → 能隙闭合 → Chern 跳跃相变），Topo 可证伪预测 P7-P9
+  - **Gan-TOMAS P=GW 八元数升维**：`gan_tomas_pgw.py`（~900 行）—— Gan 极化算子 G（cos(φ)·ħ·Re + sin(φ)·ħ·Im），八元数质量起源公式 M=‖O‖²/(G_res×tanh(κ))，轻子质量比代数推导（基于 Furey 2015 + TOMAS κ 扩展），观测顺序效应（associator_norm → 顺序无关/敏感/决定三区判定），EML-KB SQL 查询集成（particle/wave/verify 三类），Gan 可证伪预测 P1-P6
+  - **跨模块集成**：TopoChargeGroup 从 htd_sim 导入（非重复定义），κ-Snap 跨模块统一审计格式，3 项跨模块集成测试（HTD↔Topo, Gan↔HTD, 三模块全链）
+- 新增 3 个模块文件，~2,250 行代码
+- 新增 108 个测试用例（`test_v37_modules.py`，18 测试类），108/108 全部通过
+- 新增 11 项可证伪预测（P1-P6 Gan, P7-P9 Topo, P10-P11 HTD）
+- 论文 paper.md → v3.7：新增 Appendix M（v3.7 HTD/Topo/Gan 升级 + 评估数据）
+- 评估数据补充：ARC-AGI-3（RHAE 66.67%）、GAIA（2/3 正确）、SWE-bench（300/300 零错误）
+
+### Changed
+- paper.md 版本号 v3.6 → v3.7，测试数 767 → 875，模块数 87 → 90
+- README.md：更新特性列表、模块数（87→90）、测试数（767→875）
+
+---
+
 ## [v3.6] - 2026-06-21
 
 ### Added

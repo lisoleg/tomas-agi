@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 # FDE Builder 测试
 # ═══════════════════════════════════════════════════════════════
 
-from tomas_agi.sim.fde_builder import (
+from sim.fde_builder import (
     FDEOntologyBuilder, FDENode, FDENodeType, GroundingStatus,
     IndustrialStandard, EchoContext, FDEValidationResult,
 )
@@ -241,7 +241,7 @@ class TestFDEOntologyBuilder:
 # Dual Timeline 测试
 # ═══════════════════════════════════════════════════════════════
 
-from tomas_agi.sim.dual_timeline import (
+from sim.dual_timeline import (
     DualTimelineEngine, ExternalTimeline, InternalTimeline,
     CognitiveFirewall, DualTimelineAligner,
     CausalEvent, CognitiveEvent, CausalEventType, CognitiveEventType,
@@ -396,7 +396,7 @@ class TestDualTimelineEngine:
 # IT-OT Bridge 测试
 # ═══════════════════════════════════════════════════════════════
 
-from tomas_agi.sim.itot_bridge import (
+from sim.itot_bridge import (
     ITOTBridge, ITOTTranslator, TechnicalDebtGovernor, ZeroTrustGate,
     TechDomain, DebtType, DebtSeverity, TrustLevel,
     TranslationEntry, TechDebt, JointKPI,
@@ -569,7 +569,7 @@ class TestITOTBridge:
 # MemOS 集成测试
 # ═══════════════════════════════════════════════════════════════
 
-from tomas_agi.sim.memos_fusion import TOMAS_Mem_OS_Fusion
+from sim.memos_fusion import TOMAS_Mem_OS_Fusion
 
 
 class TestMemOSFDEIntegration:

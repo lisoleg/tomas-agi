@@ -12,12 +12,12 @@ import pytest
 
 sys.path.insert(0, '.')
 
-from tomas_agi.sim.memos_fusion import (
+from sim.memos_fusion import (
     MemoryRecord,
     MemoryStore,
     TOMAS_Mem_OS_Fusion,
 )
-from tomas_agi.sim.psi_anchor import PsiAnchor, PsiAnchorManager
+from sim.psi_anchor import PsiAnchor, PsiAnchorManager
 
 
 # ============================================================
