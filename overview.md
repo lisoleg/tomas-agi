@@ -12,9 +12,11 @@ TOMAS AGI 从 v2.0 升级至 v3.12，新增 **12个后端模块 + 35个Flask API
 | Flask API 端点 | 165 个 |
 | 后端测试 | 1368 passed, 2 skipped, 0 failed |
 | 模块自测 | 148 tests (v3.12: 35+30+17+66) |
-| 前端面板 | 18+ React 面板 |
+| 前端面板 | 18+ React 面板 (22个lazy-loaded独立chunk) |
+| 前端代码分割 | 首屏 gzip 674KB→349KB (改善48%) |
 | 前端 TypeScript | tsc --noEmit 零错误 |
-| 前端 Vitest | 17/17 + 16/16 通过 |
+| 前端生产构建 | npm run build 通过, 22个独立chunk |
+| 前端 Vitest | 8文件 68测试通过 (含v3.12新增35测试) |
 | 数据库 | 101.6M 行 (OwnThink), i_weight 已完成 |
 | GitHub 推送 | ✅ tomas-agi + tomas-chat |
 
@@ -70,9 +72,37 @@ TOMAS AGI 从 v2.0 升级至 v3.12，新增 **12个后端模块 + 35个Flask API
 - **grill_me_engine**: 修复 `_gates` → `_registry` 属性名
 - **grill_precheck**: 改为非阻塞模式 (不再阻断v3.10流程)
 
+## v3.12 工程优化 (06-23)
+
+### 前端代码分割
+- App.tsx: 22个面板组件改为 `React.lazy()` 动态导入
+- `<Suspense>` 包裹 `renderPanel()` 实现按需加载
+- vite.config.ts: `manualChunks` 分离 vendor-react/three/d3/markdown
+- 首屏 gzip 从 674KB 降至 349KB (改善48%)
+- Three.js (129KB gzip) 仅在打开3D面板时加载
+
+### 面板单元测试 (35 new tests)
+- LuZhaoPanel.test.tsx: 9 tests (不变量/DNA检测/八卦触发)
+- GATPanel.test.tsx: 9 tests (理论列表/态射计算/自由模型)
+- FinancialWorldPanel.test.tsx: 8 tests (LOB创建/ENPV/熔断)
+- TokenizedEconomyPanel.test.tsx: 9 tests (经济体创建/快照/智能体)
+- 全量: 8文件 68测试通过
+
+### LOB 会话持久化
+- server.py: 新增 `LOBSessionStore` 类 (220行)
+- 内存缓存 + SQLite 持久化双写
+- 重启自动恢复所有 LOB 会话
+- 6个金融端点全部迁移至 `_lob_store`
+
+### ARC-AGI-3 配置
+- API Key 已配置, 25个游戏列表获取成功
+
 ## Git 提交记录
 
 - `1691907` — feat: TOMAS AGI v3.9-v3.12 complete upgrade (52 files, +24062 lines)
+- `1e14e03` — feat: v3.12 UI optimization + documentation update (7 files, +1012 lines)
+- `433d562` — docs: v3.12 补充文档 + 内存记录 + gitignore 更新 (6 files)
+- `14b02fb` — feat: v3.12 优化 — 前端代码分割 + 面板单元测试 + LOB持久化 (8 files, +1126 lines)
 
 ## 用户下一步建议
 
