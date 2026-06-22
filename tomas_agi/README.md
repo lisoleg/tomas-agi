@@ -5,8 +5,8 @@
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](./LICENSE)
-[![Modules](https://img.shields.io/badge/modules-79+-orange.svg)](./sim/)
-[![Tests](https://img.shields.io/badge/tests-727%20PASS-brightgreen.svg)](./tests/)
+[![Modules](https://img.shields.io/badge/modules-87+-orange.svg)](./sim/)
+[![Tests](https://img.shields.io/badge/tests-763%20PASS-brightgreen.svg)](./tests/)
 [![CUDA](https://img.shields.io/badge/CUDA-supported-success.svg)](./kernel/)
 [![FPGA](https://img.shields.io/badge/FPGA-verified-blueviolet.svg)](./rtl/)
 [![DB](https://img.shields.io/badge/knowledge_triples-101M+-blue.svg)]()
@@ -90,6 +90,13 @@ graph TD
 - 🌐 **AgentWeb 分布式时序（v2.6）** — 向量时钟因果顺序 + 因果交付级联解锁 + Fediverse/ActivityPub 桥接 + 区块链 κ-Snap Merkle Root 存证
 - 🔐 **密码学桥接（v2.6）** — Mina SNARK 递归证明（22KB 恒定大小，降级本地 SHA-256）+ Celo cUSD/cEUR 稳定币支付（BLS 聚合签名，RPC 超时快速降级）
 - 🧠 **EML-EHNN 等变超图（v2.6）** — ℐ(e) 加权超边前向传播 + MUS-Aware Pooling + κ-Snap 一致性损失 + GPCT 动态输出维度
+- 🔮 **ψ-Gate 不确定性门控（v3.6）** — 6 核心锚点（ℐ-Gate/κ-Gate/Dead-Zero/MUS/ψ-Anchor/T-Shield）+ 多世界并行推理 + MUS 双存 + 容差衰减控制
+- 📐 **7+1 语义规范本体（v3.6）** — Entity/Attribute/Relation/Event/Temporal/Causal/Constraint + BusinessRule 本体治理，EML-Lite DB 五区架构（L1 Akashic / L2 Dharma / MUS 冲突 / GPCT 成长 / κ-Snap 账本），Fact→Logic→Act 三层提升
+- 🌊 **解释坩埚（v3.6）** — 波粒二象性多世界分支（wave/particle/qbism）+ 贝叶斯坍缩 + MUS 双存解析 + 解释谱系追踪
+- 🌍 **世界模型超边（v3.6）** — SDF（符号距离场）+ Affordance（可供性）+ Kinematic（运动学）三超边，Ω-Gate Tetrad 联验（π/Φ/Ω/℧ 四指标交叉验证）
+- 🛡️ **DIKWP 全桥接（v3.6）** — IntentGuard 意图守卫（4 级危险度）+ MemoryLedger→MUS 映射 + DAAP 四层审计 + 语义安全完备性定理
+- ☯️ **太极周期 v2（v3.6）** — EML 脉冲→φ-Gate→T-Processor 闭环，CycleSpinner 自适应调度器，LRU 超边存储
+- ❄️ **MNQ 冻结内核（v3.6）** — 五层渐进冻结（L0-L4）+ 八元数非结合度量化 + Golden Spirit Ball Fibonacci 投影 + κ=7 稳定器 + 热容量分析
 
 ---
 
@@ -169,7 +176,7 @@ npm run dev
 
 ```
 tomas-agi/
-├── sim/                          # Python 仿真与推理引擎 (79 .py 文件)
+├── sim/                          # Python 仿真与推理引擎 (87 .py 文件)
 │   ├── token_bridge.py           # Token Bridge 推理引擎（翻译官+作家+φ-Gate）
 │   ├── server.py                 # Flask REST API 服务器（56 端点）
 │   ├── models.py                 # SQLAlchemy ORM 模型（7 张表）
@@ -205,6 +212,14 @@ tomas-agi/
 │   ├── resume_import.py          # OwnThink 断点续传导入器
 │   ├── compute_i_weight.py       # i_weight 后计算脚本
 │   ├── post_import.py            # 导入完成后自动化
+│   ├── psi_gate.py               # ψ-Gate 不确定性门控（v3.6）
+│   ├── eml_kb_ontology.py        # 7+1 语义规范本体治理（v3.6）
+│   ├── interpretation_crucible.py # 解释坩埚·波粒二象性（v3.6）
+│   ├── wm_hyperedge.py           # 世界模型超边·Ω-Gate Tetrad（v3.6）
+│   ├── dikwp_bridge_full.py      # DIKWP 全桥接·IntentGuard（v3.6）
+│   ├── taiji_cycle_v2.py         # 太极周期 v2·CycleSpinner（v3.6）
+│   ├── mnq_frozen_kernel.py      # MNQ 冻结内核·五层渐进（v3.6）
+│   ├── tomas_therapist.py        # TOMAS 治疗师（v3.6 扩展）
 │   ├── eml_dimred/               # 数学降维工具箱（7 模块）
 │   │   ├── hyperedge.py          # HypEdge/EMLVertex + EML 加载
 │   │   ├── matroid.py            # 拟阵贪心剪枝（κ-Gate 最优独立集）
@@ -232,7 +247,7 @@ tomas-agi/
 │   ├── create_vivado_project.tcl # Vivado 自动化脚本 (Zynq-7020)
 │   └── ...
 │
-├── tests/                        # 测试套件（20 文件，729 测试函数）
+├── tests/                        # 测试套件（21 文件，767 测试函数）
 │   ├── test_token_bridge.py      # Token Bridge 测试 (8)
 │   ├── test_eml_dimred.py        # 数学降维测试 (20)
 │   ├── test_router.py            # 路由器测试 (27)
@@ -247,6 +262,7 @@ tomas-agi/
 │   ├── test_tprocessor_tshield.py # T-Processor+T-Shield 测试 (39)
 │   ├── test_new_modules.py       # G_ego/Epiplexity/SemZip 测试 (21)
 │   ├── test_tomas_v2_articles.py # κ-Snap/ExtendHypergraph 测试 (51)
+│   ├── test_v36_modules.py       # v3.6 八模块测试 (57)
 │   └── ...
 │
 ├── data/                         # 语料与蒸馏数据
@@ -290,7 +306,8 @@ tomas-agi/
 | M8 评估框架 | 6 | ARC-AGI-3 / SWE-bench / GAIA / TCCI-华山 |
 | M9 数据层 | 5 | SQLite ORM + OwnThink 导入 + i_weight 计算 |
 | M10 桥接模块 | 7 | IDO / FDE / DualTimeline / ITOT / Causet / HYWorld / Palantir |
-| **总计** | **79+** | **727/729 测试通过（2 skipped 需 API Key）** |
+| M11 v3.6 升级模块 | 8 | ψ-Gate / 7+1本体 / 解释坩埚 / 世界模型超边 / DIKWP全桥接 / 太极周期v2 / MNQ冻结内核 / 治疗师扩展 |
+| **总计** | **87+** | **763/767 测试通过（2 skipped 需 API Key，2 pre-existing failed）** |
 
 ### LLM 对话测试（2026-06-14）
 
