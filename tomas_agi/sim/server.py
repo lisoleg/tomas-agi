@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sqlalchemy import func, text, select
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from models import (
@@ -30,6 +31,76 @@ from models import (
 
 app = Flask(__name__)
 CORS(app)
+
+# ---- Prometheus Metrics ----
+REQUEST_COUNT = Counter('tomas_http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+REQUEST_LATENCY = Histogram('tomas_http_request_duration_seconds', 'HTTP request latency', ['method', 'endpoint'])
+ACTIVE_REQUESTS = Gauge('tomas_http_active_requests', 'Active HTTP requests')
+
+@app.before_request
+def _prometheus_before_request():
+    request._prometheus_start_time = time.time()
+    ACTIVE_REQUESTS.inc()
+
+@app.after_request
+def _prometheus_after_request(response):
+    if request.path == '/metrics':
+        return response
+    latency = time.time() - getattr(request, '_prometheus_start_time', time.time())
+    endpoint = request.endpoint or 'unknown'
+    REQUEST_COUNT.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
+    REQUEST_LATENCY.labels(method=request.method, endpoint=endpoint).observe(latency)
+    ACTIVE_REQUESTS.dec()
+    return response
+
+@app.route('/metrics')
+def metrics():
+    """Metrics endpoint for Prometheus scraping"""
+    return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+
+# ---- OpenAPI / Swagger UI ----
+import os as _os
+
+@app.route('/openapi.json')
+def openapi_spec():
+    """返回 OpenAPI 3.0 规范文档（由 generate_openapi_spec.py 生成）"""
+    spec_path = _os.path.join(_os.path.dirname(__file__), 'openapi_spec.json')
+    if not _os.path.exists(spec_path):
+        return {'error': 'openapi_spec.json not found, run generate_openapi_spec.py first'}, 404
+    with open(spec_path, 'r', encoding='utf-8') as f:
+        spec = json.load(f)
+    return spec, 200, {'Content-Type': 'application/json'}
+
+@app.route('/docs')
+def swagger_ui():
+    """Swagger UI 交互文档页面（使用 CDN）"""
+    html = '''<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>TOMAS AGI API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <style>body { margin: 0; padding: 0; }</style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = function() {
+            window.ui = SwaggerUIBundle({
+                url: "/openapi.json",
+                dom_id: "#swagger-ui",
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+            });
+        };
+    </script>
+</body>
+</html>'''
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 # ---- 工具函数 ----
 
@@ -64,6 +135,14 @@ def _ts_to_dt(ts):
 
 @app.route("/api/corpus", methods=["GET"])
 def get_corpus():
+    """Get Corpus
+    ---
+    tags:
+      - Corpus
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         rows = session.query(CorpusEntry).order_by(CorpusEntry.created_at.desc()).all()
@@ -85,6 +164,14 @@ def get_corpus():
 
 @app.route("/api/corpus", methods=["POST"])
 def add_corpus():
+    """Add Corpus
+    ---
+    tags:
+      - Corpus
+    responses:
+      200:
+    description: Success
+    """
     data = request.json
     session = get_session()
     try:
@@ -109,6 +196,14 @@ def add_corpus():
 
 @app.route("/api/corpus/<int:entry_id>", methods=["DELETE"])
 def delete_corpus(entry_id):
+    """Delete Corpus
+    ---
+    tags:
+      - Corpus
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         session.query(CorpusEntry).filter_by(id=entry_id).delete()
@@ -122,6 +217,14 @@ def delete_corpus(entry_id):
 
 @app.route("/api/conflicts", methods=["GET"])
 def get_conflicts():
+    """Get Conflicts
+    ---
+    tags:
+      - Conflict
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         rows = session.query(ConflictDecision).all()
@@ -142,6 +245,14 @@ def get_conflicts():
 
 @app.route("/api/conflicts", methods=["POST"])
 def add_conflict():
+    """Add Conflict
+    ---
+    tags:
+      - Conflict
+    responses:
+      200:
+    description: Success
+    """
     data = request.json
     session = get_session()
     try:
@@ -170,6 +281,14 @@ def add_conflict():
 
 @app.route("/api/sessions", methods=["GET"])
 def get_sessions():
+    """Get Sessions
+    ---
+    tags:
+      - Chat
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         rows = session.query(ChatSession).order_by(ChatSession.updated_at.desc()).all()
@@ -190,6 +309,14 @@ def get_sessions():
 
 @app.route("/api/sessions", methods=["POST"])
 def save_sessions():
+    """Save Sessions
+    ---
+    tags:
+      - Chat
+    responses:
+      200:
+    description: Success
+    """
     data = request.json
     session = get_session()
     try:
@@ -217,6 +344,14 @@ def save_sessions():
 
 @app.route("/api/sessions/<session_id>", methods=["DELETE"])
 def delete_session(session_id):
+    """Delete Session
+    ---
+    tags:
+      - Chat
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         session.query(ChatSession).filter_by(session_id=session_id).delete()
@@ -230,6 +365,14 @@ def delete_session(session_id):
 
 @app.route("/api/apikey", methods=["GET"])
 def get_api_key():
+    """Get Api Key
+    ---
+    tags:
+      - Settings
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         row = session.query(ApiKey).filter_by(key_name="deepseek").first()
@@ -240,6 +383,14 @@ def get_api_key():
 
 @app.route("/api/apikey", methods=["POST"])
 def save_api_key():
+    """Save Api Key
+    ---
+    tags:
+      - Settings
+    responses:
+      200:
+    description: Success
+    """
     data = request.json
     session = get_session()
     try:
@@ -266,6 +417,14 @@ def save_api_key():
 
 @app.route("/api/knowledge", methods=["GET"])
 def get_knowledge():
+    """Get Knowledge
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         rows = session.query(KnowledgeItem).all()
@@ -287,6 +446,14 @@ def get_knowledge():
 
 @app.route("/api/knowledge", methods=["POST"])
 def add_knowledge():
+    """Add Knowledge
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     items = request.json
     session = get_session()
     try:
@@ -339,6 +506,14 @@ def add_knowledge():
 
 @app.route("/api/knowledge/<int:item_id>", methods=["DELETE"])
 def delete_knowledge(item_id):
+    """Delete Knowledge
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         session.query(KnowledgeItem).filter_by(id=item_id).delete()
@@ -352,6 +527,14 @@ def delete_knowledge(item_id):
 
 @app.route("/api/settings/<key>", methods=["GET"])
 def get_setting(key):
+    """Get Setting
+    ---
+    tags:
+      - Settings
+    responses:
+      200:
+    description: Success
+    """
     session = get_session()
     try:
         row = session.query(Setting).filter_by(key=key).first()
@@ -365,6 +548,14 @@ def get_setting(key):
 
 @app.route("/api/settings", methods=["POST"])
 def save_setting():
+    """Save Setting
+    ---
+    tags:
+      - Settings
+    responses:
+      200:
+    description: Success
+    """
     data = request.json
     key = data.get("key")
     value = data.get("value")
@@ -392,6 +583,14 @@ def save_setting():
 
 @app.route("/api/knowledge/triples")
 def get_triples():
+    """Get Triples
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     subject = request.args.get("subject", "")
     predicate = request.args.get("predicate", "")
     obj = request.args.get("object", "")
@@ -440,6 +639,14 @@ def get_triples():
 
 @app.route("/api/knowledge/subjects")
 def get_subjects():
+    """Get Subjects
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     limit = int(request.args.get("limit", 1000))
     search = request.args.get("search", "")
     session = get_session()
@@ -455,6 +662,14 @@ def get_subjects():
 
 @app.route("/api/knowledge/predicates")
 def get_predicates():
+    """Get Predicates
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     limit = int(request.args.get("limit", 1000))
     search = request.args.get("search", "")
     session = get_session()
@@ -470,6 +685,14 @@ def get_predicates():
 
 @app.route("/api/knowledge/graph")
 def get_graph():
+    """Get Graph
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+    description: Success
+    """
     limit = int(request.args.get("limit", 200))
     subject = request.args.get("subject", "")
     min_i_weight = float(request.args.get("min_i_weight", 0))
@@ -679,6 +902,14 @@ def api_knowledge_search():
 
 @app.route("/api/health")
 def health():
+    """Health
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+    description: Success
+    """
     return jsonify({"status": "ok", "db": DB_PATH})
 
 
@@ -796,6 +1027,14 @@ def _get_itot_bridge():
 
 @app.route("/api/ido/evaluate", methods=["POST"])
 def ido_evaluate():
+    """Ido Evaluate
+    ---
+    tags:
+      - IDO
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         bridge = _get_ido_bridge()
@@ -824,6 +1063,14 @@ def ido_evaluate():
 
 @app.route("/api/ido/classify", methods=["POST"])
 def ido_classify():
+    """Ido Classify
+    ---
+    tags:
+      - IDO
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         bridge = _get_ido_bridge()
@@ -842,6 +1089,14 @@ def ido_classify():
 
 @app.route("/api/ido/flow", methods=["POST"])
 def ido_flow():
+    """Ido Flow
+    ---
+    tags:
+      - IDO
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         bridge = _get_ido_bridge()
@@ -862,6 +1117,14 @@ def ido_flow():
 
 @app.route("/api/ido/stats", methods=["GET"])
 def ido_stats():
+    """Ido Stats
+    ---
+    tags:
+      - IDO
+    responses:
+      200:
+    description: Success
+    """
     try:
         bridge = _get_ido_bridge()
         if bridge is None:
@@ -879,6 +1142,14 @@ def ido_stats():
 
 @app.route("/api/fde/build", methods=["POST"])
 def fde_build():
+    """Fde Build
+    ---
+    tags:
+      - FDE
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         builder = _get_fde_builder()
@@ -897,6 +1168,14 @@ def fde_build():
 
 @app.route("/api/fde/calibrate", methods=["POST"])
 def fde_calibrate():
+    """Fde Calibrate
+    ---
+    tags:
+      - FDE
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         builder = _get_fde_builder()
@@ -912,6 +1191,14 @@ def fde_calibrate():
 
 @app.route("/api/fde/check-asym", methods=["POST"])
 def fde_check_asym():
+    """Fde Check Asym
+    ---
+    tags:
+      - FDE
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         builder = _get_fde_builder()
@@ -927,6 +1214,14 @@ def fde_check_asym():
 
 @app.route("/api/fde/status", methods=["GET"])
 def fde_status():
+    """Fde Status
+    ---
+    tags:
+      - FDE
+    responses:
+      200:
+    description: Success
+    """
     try:
         builder = _get_fde_builder()
         if builder is None:
@@ -944,6 +1239,14 @@ def fde_status():
 
 @app.route("/api/dual-timeline/tick", methods=["POST"])
 def dual_tick():
+    """Dual Tick
+    ---
+    tags:
+      - Dual
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         mods = _get_dual_timeline()
@@ -961,6 +1264,14 @@ def dual_tick():
 
 @app.route("/api/dual-timeline/step", methods=["POST"])
 def dual_step():
+    """Dual Step
+    ---
+    tags:
+      - Dual
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         mods = _get_dual_timeline()
@@ -977,6 +1288,14 @@ def dual_step():
 
 @app.route("/api/dual-timeline/align", methods=["POST"])
 def dual_align():
+    """Dual Align
+    ---
+    tags:
+      - Dual
+    responses:
+      200:
+    description: Success
+    """
     try:
         mods = _get_dual_timeline()
         if mods is None:
@@ -992,6 +1311,14 @@ def dual_align():
 
 @app.route("/api/dual-timeline/status", methods=["GET"])
 def dual_status():
+    """Dual Status
+    ---
+    tags:
+      - Dual
+    responses:
+      200:
+    description: Success
+    """
     try:
         mods = _get_dual_timeline()
         if mods is None:
@@ -1009,6 +1336,14 @@ def dual_status():
 
 @app.route("/api/itot/translate", methods=["POST"])
 def itot_translate():
+    """Itot Translate
+    ---
+    tags:
+      - ITOT
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         mods = _get_itot_bridge()
@@ -1027,6 +1362,14 @@ def itot_translate():
 
 @app.route("/api/itot/debt-assess", methods=["POST"])
 def itot_debt_assess():
+    """Itot Debt Assess
+    ---
+    tags:
+      - ITOT
+    responses:
+      200:
+    description: Success
+    """
     try:
         mods = _get_itot_bridge()
         if mods is None:
@@ -1042,6 +1385,14 @@ def itot_debt_assess():
 
 @app.route("/api/itot/zero-trust", methods=["POST"])
 def itot_zero_trust():
+    """Itot Zero Trust
+    ---
+    tags:
+      - ITOT
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         mods = _get_itot_bridge()
@@ -1062,6 +1413,14 @@ def itot_zero_trust():
 
 @app.route("/api/itot/kpi", methods=["GET"])
 def itot_kpi():
+    """Itot Kpi
+    ---
+    tags:
+      - ITOT
+    responses:
+      200:
+    description: Success
+    """
     try:
         mods = _get_itot_bridge()
         if mods is None:
@@ -1092,6 +1451,14 @@ def _get_tprocessor():
 
 @app.route("/api/tprocessor/tick", methods=["POST"])
 def tproc_tick():
+    """Tproc Tick
+    ---
+    tags:
+      - TProcessor
+    responses:
+      200:
+    description: Success
+    """
     try:
         import numpy as np
         data = request.json or {}
@@ -1115,6 +1482,14 @@ def tproc_tick():
 
 @app.route("/api/tprocessor/load_eml", methods=["POST"])
 def tproc_load_eml():
+    """Tproc Load Eml
+    ---
+    tags:
+      - TProcessor
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.json or {}
         tproc = _get_tprocessor()
@@ -1144,6 +1519,14 @@ def _get_tshield():
 
 @app.route("/api/tshield/infer", methods=["POST"])
 def tshield_infer():
+    """Tshield Infer
+    ---
+    tags:
+      - TShield
+    responses:
+      200:
+    description: Success
+    """
     try:
         import numpy as np
         data = request.json or {}
@@ -1161,6 +1544,14 @@ def tshield_infer():
 
 @app.route("/api/tshield/demo", methods=["GET"])
 def tshield_demo():
+    """Tshield Demo
+    ---
+    tags:
+      - TShield
+    responses:
+      200:
+    description: Success
+    """
     try:
         from tshield_wrapper import demo_tshield
         demo_tshield()
@@ -4854,6 +5245,14 @@ _lob_store = LOBSessionStore()
 
 @app.route('/api/v3/luzhao/fibonacci', methods=['GET'])
 def v312_luzhao_fibonacci():
+    """V312 Luzhao Fibonacci
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         n = int(request.args.get("n", 20))
         n = max(1, min(n, 100))
@@ -4864,6 +5263,14 @@ def v312_luzhao_fibonacci():
 
 @app.route('/api/v3/luzhao/lucas', methods=['GET'])
 def v312_luzhao_lucas():
+    """V312 Luzhao Lucas
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         n = int(request.args.get("n", 20))
         n = max(1, min(n, 100))
@@ -4874,6 +5281,14 @@ def v312_luzhao_lucas():
 
 @app.route('/api/v3/luzhao/bagua', methods=['GET'])
 def v312_luzhao_bagua():
+    """V312 Luzhao Bagua
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         from luzhao_dna import bagua_constants
         return jsonify({"constants": bagua_constants()})
@@ -4882,6 +5297,14 @@ def v312_luzhao_bagua():
 
 @app.route('/api/v3/luzhao/invariants', methods=['GET'])
 def v312_luzhao_invariants():
+    """V312 Luzhao Invariants
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         from luzhao_dna import get_chinese_market_invariants
         return jsonify({"invariants": get_chinese_market_invariants()})
@@ -4890,6 +5313,14 @@ def v312_luzhao_invariants():
 
 @app.route('/api/v3/luzhao/dna/create', methods=['POST'])
 def v312_luzhao_dna_create():
+    """V312 Luzhao Dna Create
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
@@ -4904,6 +5335,14 @@ def v312_luzhao_dna_create():
 
 @app.route('/api/v3/luzhao/dna/check', methods=['POST'])
 def v312_luzhao_dna_check():
+    """V312 Luzhao Dna Check
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
@@ -4919,6 +5358,14 @@ def v312_luzhao_dna_check():
 
 @app.route('/api/v3/luzhao/dna/bagua-trigger', methods=['POST'])
 def v312_luzhao_bagua_trigger():
+    """V312 Luzhao Bagua Trigger
+    ---
+    tags:
+      - LuZhao
+    responses:
+      200:
+    description: Success
+    """
     try:
         from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
@@ -4934,6 +5381,14 @@ def v312_luzhao_bagua_trigger():
 
 @app.route('/api/v3/gat/theories', methods=['GET'])
 def v312_gat_theories():
+    """V312 Gat Theories
+    ---
+    tags:
+      - GAT
+    responses:
+      200:
+    description: Success
+    """
     try:
         from gat_axioms import ArcDSL_GAT, OctonionGAT
         arc = ArcDSL_GAT()
@@ -4949,6 +5404,14 @@ def v312_gat_theories():
 
 @app.route('/api/v3/gat/theory/create', methods=['POST'])
 def v312_gat_theory_create():
+    """V312 Gat Theory Create
+    ---
+    tags:
+      - GAT
+    responses:
+      200:
+    description: Success
+    """
     try:
         from gat_axioms import GATTheory
         data = request.get_json(silent=True) or {}
@@ -4969,6 +5432,14 @@ def v312_gat_theory_create():
 
 @app.route('/api/v3/gat/theory/free-model', methods=['POST'])
 def v312_gat_theory_free_model():
+    """V312 Gat Theory Free Model
+    ---
+    tags:
+      - GAT
+    responses:
+      200:
+    description: Success
+    """
     try:
         from gat_axioms import ArcDSL_GAT, OctonionGAT
         data = request.get_json(silent=True) or {}
@@ -4986,6 +5457,14 @@ def v312_gat_theory_free_model():
 
 @app.route('/api/v3/gat/theory/map', methods=['POST'])
 def v312_gat_theory_map():
+    """V312 Gat Theory Map
+    ---
+    tags:
+      - GAT
+    responses:
+      200:
+    description: Success
+    """
     try:
         from gat_axioms import ArcDSL_GAT, OctonionGAT
         data = request.get_json(silent=True) or {}
@@ -4999,6 +5478,14 @@ def v312_gat_theory_map():
 
 @app.route('/api/v3/financial/lob/create', methods=['POST'])
 def v312_financial_lob_create():
+    """V312 Financial Lob Create
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         from financial_world_model import build_financial_world
         import uuid
@@ -5011,6 +5498,14 @@ def v312_financial_lob_create():
 
 @app.route('/api/v3/financial/lob/add-order', methods=['POST'])
 def v312_financial_lob_add_order():
+    """V312 Financial Lob Add Order
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         from financial_world_model import OrderSide
         data = request.get_json(silent=True) or {}
@@ -5032,6 +5527,14 @@ def v312_financial_lob_add_order():
 
 @app.route('/api/v3/financial/lob/match', methods=['POST'])
 def v312_financial_lob_match():
+    """V312 Financial Lob Match
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         from financial_world_model import OrderSide
         data = request.get_json(silent=True) or {}
@@ -5053,6 +5556,14 @@ def v312_financial_lob_match():
 
 @app.route('/api/v3/financial/lob/status/<session_id>', methods=['GET'])
 def v312_financial_lob_status(session_id):
+    """V312 Financial Lob Status
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         world = _lob_store.get(session_id)
         if world is None:
@@ -5074,6 +5585,14 @@ def v312_financial_lob_status(session_id):
 
 @app.route('/api/v3/financial/mm/provide', methods=['POST'])
 def v312_financial_mm_provide():
+    """V312 Financial Mm Provide
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.get_json(silent=True) or {}
         sid = data.get("session_id", "")
@@ -5092,6 +5611,14 @@ def v312_financial_mm_provide():
 
 @app.route('/api/v3/financial/slippage/compute', methods=['POST'])
 def v312_financial_slippage():
+    """V312 Financial Slippage
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         from financial_world_model import SlippageModel
         data = request.get_json(silent=True) or {}
@@ -5105,6 +5632,14 @@ def v312_financial_slippage():
 
 @app.route('/api/v3/financial/enpv', methods=['POST'])
 def v312_financial_enpv():
+    """V312 Financial Enpv
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         from financial_world_model import ENPVCalculator
         data = request.get_json(silent=True) or {}
@@ -5125,6 +5660,14 @@ def v312_financial_enpv():
 
 @app.route('/api/v3/financial/circuit-break', methods=['POST'])
 def v312_financial_circuit_break():
+    """V312 Financial Circuit Break
+    ---
+    tags:
+      - Financial
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.get_json(silent=True) or {}
         sid = data.get("session_id", "")
@@ -5147,6 +5690,14 @@ def v312_financial_circuit_break():
 
 @app.route('/api/v3/tokenized/economy/create', methods=['POST'])
 def v312_tokenized_economy_create():
+    """V312 Tokenized Economy Create
+    ---
+    tags:
+      - TokenizedEconomy
+    responses:
+      200:
+    description: Success
+    """
     try:
         from tokenized_economy import AgentEconomy
         import uuid
@@ -5163,6 +5714,14 @@ def v312_tokenized_economy_create():
 
 @app.route('/api/v3/tokenized/agent/register', methods=['POST'])
 def v312_tokenized_agent_register():
+    """V312 Tokenized Agent Register
+    ---
+    tags:
+      - Tokenized
+    responses:
+      200:
+    description: Success
+    """
     try:
         from tokenized_economy import AgentType
         data = request.get_json(silent=True) or {}
@@ -5180,6 +5739,14 @@ def v312_tokenized_agent_register():
 
 @app.route('/api/v3/tokenized/ubi/payout', methods=['POST'])
 def v312_tokenized_ubi_payout():
+    """V312 Tokenized Ubi Payout
+    ---
+    tags:
+      - Tokenized
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.get_json(silent=True) or {}
         eid = data.get("economy_id", "")
@@ -5194,6 +5761,14 @@ def v312_tokenized_ubi_payout():
 
 @app.route('/api/v3/tokenized/trade', methods=['POST'])
 def v312_tokenized_trade():
+    """V312 Tokenized Trade
+    ---
+    tags:
+      - Tokenized
+    responses:
+      200:
+    description: Success
+    """
     try:
         data = request.get_json(silent=True) or {}
         eid = data.get("economy_id", "")
@@ -5216,6 +5791,14 @@ def v312_tokenized_trade():
 
 @app.route('/api/v3/tokenized/economy/<economy_id>/snapshot', methods=['GET'])
 def v312_tokenized_economy_snapshot(economy_id):
+    """V312 Tokenized Economy Snapshot
+    ---
+    tags:
+      - TokenizedEconomy
+    responses:
+      200:
+    description: Success
+    """
     try:
         if economy_id not in _economy_sessions:
             return jsonify({"error": "unknown economy_id"}), 404
@@ -5227,6 +5810,14 @@ def v312_tokenized_economy_snapshot(economy_id):
 
 @app.route('/api/v3/tokenized/agent/<economy_id>/<agent_id>/balance', methods=['GET'])
 def v312_tokenized_agent_balance(economy_id, agent_id):
+    """V312 Tokenized Agent Balance
+    ---
+    tags:
+      - TokenizedEconomy
+    responses:
+      200:
+    description: Success
+    """
     try:
         if economy_id not in _economy_sessions:
             return jsonify({"error": "unknown economy_id"}), 404

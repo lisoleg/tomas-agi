@@ -1,0 +1,3874 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "TOMAS AGI API",
+    "description": "TOMAS AGI 后端API — 165+ endpoints",
+    "version": "3.12"
+  },
+  "paths": {
+    "/metrics": {
+      "get": {
+        "summary": "GET /metrics",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /metrics",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/corpus": {
+      "get": {
+        "summary": "GET /api/corpus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/corpus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/corpus/<int:entry_id>": {
+      "get": {
+        "summary": "GET /api/corpus/<int:entry_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/corpus/<int:entry_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/conflicts": {
+      "get": {
+        "summary": "GET /api/conflicts",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/conflicts",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "summary": "GET /api/sessions",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/sessions",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/sessions/<session_id>": {
+      "get": {
+        "summary": "GET /api/sessions/<session_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/sessions/<session_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/apikey": {
+      "get": {
+        "summary": "GET /api/apikey",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/apikey",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge": {
+      "get": {
+        "summary": "GET /api/knowledge",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/<int:item_id>": {
+      "get": {
+        "summary": "GET /api/knowledge/<int:item_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/<int:item_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/settings/<key>": {
+      "get": {
+        "summary": "GET /api/settings/<key>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/settings/<key>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "summary": "GET /api/settings",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/settings",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/triples": {
+      "get": {
+        "summary": "GET /api/knowledge/triples",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/triples",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/subjects": {
+      "get": {
+        "summary": "GET /api/knowledge/subjects",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/subjects",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/predicates": {
+      "get": {
+        "summary": "GET /api/knowledge/predicates",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/predicates",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/graph": {
+      "get": {
+        "summary": "GET /api/knowledge/graph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/graph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/stats": {
+      "get": {
+        "summary": "GET /api/knowledge/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/knowledge/search": {
+      "get": {
+        "summary": "GET /api/knowledge/search",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/knowledge/search",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "GET /api/health",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/health",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mnq_deep/train": {
+      "get": {
+        "summary": "GET /api/v2/mnq_deep/train",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mnq_deep/train",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mnq_deep/status": {
+      "get": {
+        "summary": "GET /api/v2/mnq_deep/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mnq_deep/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ido/evaluate": {
+      "get": {
+        "summary": "GET /api/ido/evaluate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/ido/evaluate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ido/classify": {
+      "get": {
+        "summary": "GET /api/ido/classify",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/ido/classify",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ido/flow": {
+      "get": {
+        "summary": "GET /api/ido/flow",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/ido/flow",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ido/stats": {
+      "get": {
+        "summary": "GET /api/ido/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/ido/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/fde/build": {
+      "get": {
+        "summary": "GET /api/fde/build",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/fde/build",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/fde/calibrate": {
+      "get": {
+        "summary": "GET /api/fde/calibrate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/fde/calibrate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/fde/check-asym": {
+      "get": {
+        "summary": "GET /api/fde/check-asym",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/fde/check-asym",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/fde/status": {
+      "get": {
+        "summary": "GET /api/fde/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/fde/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dual-timeline/tick": {
+      "get": {
+        "summary": "GET /api/dual-timeline/tick",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/dual-timeline/tick",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dual-timeline/step": {
+      "get": {
+        "summary": "GET /api/dual-timeline/step",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/dual-timeline/step",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dual-timeline/align": {
+      "get": {
+        "summary": "GET /api/dual-timeline/align",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/dual-timeline/align",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dual-timeline/status": {
+      "get": {
+        "summary": "GET /api/dual-timeline/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/dual-timeline/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/itot/translate": {
+      "get": {
+        "summary": "GET /api/itot/translate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/itot/translate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/itot/debt-assess": {
+      "get": {
+        "summary": "GET /api/itot/debt-assess",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/itot/debt-assess",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/itot/zero-trust": {
+      "get": {
+        "summary": "GET /api/itot/zero-trust",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/itot/zero-trust",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/itot/kpi": {
+      "get": {
+        "summary": "GET /api/itot/kpi",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/itot/kpi",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tprocessor/tick": {
+      "get": {
+        "summary": "GET /api/tprocessor/tick",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tprocessor/tick",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tprocessor/load_eml": {
+      "get": {
+        "summary": "GET /api/tprocessor/load_eml",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tprocessor/load_eml",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tshield/infer": {
+      "get": {
+        "summary": "GET /api/tshield/infer",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tshield/infer",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tshield/demo": {
+      "get": {
+        "summary": "GET /api/tshield/demo",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tshield/demo",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tshield/stats": {
+      "get": {
+        "summary": "GET /api/tshield/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tshield/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tprocessor/stats": {
+      "get": {
+        "summary": "GET /api/tprocessor/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tprocessor/stats",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/subsystem-status": {
+      "get": {
+        "summary": "GET /api/subsystem-status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/subsystem-status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/arc-agi3/eval": {
+      "get": {
+        "summary": "GET /api/arc-agi3/eval",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/arc-agi3/eval",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/arc-agi3/demo": {
+      "get": {
+        "summary": "GET /api/arc-agi3/demo",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/arc-agi3/demo",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tcci/test": {
+      "get": {
+        "summary": "GET /api/tcci/test",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tcci/test",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tcci/cases": {
+      "get": {
+        "summary": "GET /api/tcci/cases",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/tcci/cases",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ksnap/execute": {
+      "get": {
+        "summary": "GET /api/ksnap/execute",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/ksnap/execute",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/extend-hypergraph": {
+      "get": {
+        "summary": "GET /api/extend-hypergraph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/extend-hypergraph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/nau/detect": {
+      "get": {
+        "summary": "GET /api/nau/detect",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/nau/detect",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dual-chain/consensus": {
+      "get": {
+        "summary": "GET /api/dual-chain/consensus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/dual-chain/consensus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/eml-hw-codesign/status": {
+      "get": {
+        "summary": "GET /api/eml-hw-codesign/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/eml-hw-codesign/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/eml-hw-codesign/jump": {
+      "get": {
+        "summary": "GET /api/eml-hw-codesign/jump",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/eml-hw-codesign/jump",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/arc-agi3/fetch-real": {
+      "get": {
+        "summary": "GET /api/arc-agi3/fetch-real",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/arc-agi3/fetch-real",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/arc-agi3/list-games": {
+      "get": {
+        "summary": "GET /api/arc-agi3/list-games",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/arc-agi3/list-games",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/status": {
+      "get": {
+        "summary": "GET /api/aegis/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/bench": {
+      "get": {
+        "summary": "GET /api/aegis/bench",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/bench",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/causal-log": {
+      "get": {
+        "summary": "GET /api/aegis/causal-log",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/causal-log",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/variants": {
+      "get": {
+        "summary": "GET /api/aegis/variants",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/variants",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/psi-align": {
+      "get": {
+        "summary": "GET /api/aegis/psi-align",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/psi-align",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/aegis/harness": {
+      "get": {
+        "summary": "GET /api/aegis/harness",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/aegis/harness",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mnq/gsb/run": {
+      "get": {
+        "summary": "GET /api/v2/mnq/gsb/run",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mnq/gsb/run",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mnq/gsb/results/<run_id>": {
+      "get": {
+        "summary": "GET /api/v2/mnq/gsb/results/<run_id>",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mnq/gsb/results/<run_id>",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/reasonix/generate": {
+      "get": {
+        "summary": "GET /api/v2/reasonix/generate",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/reasonix/generate",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/reasonix/repair": {
+      "get": {
+        "summary": "GET /api/v2/reasonix/repair",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/reasonix/repair",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/status": {
+      "get": {
+        "summary": "GET /api/afs/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/status",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/put": {
+      "get": {
+        "summary": "GET /api/afs/put",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/put",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/get/<edge_id>": {
+      "get": {
+        "summary": "GET /api/afs/get/<edge_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/get/<edge_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/history/<edge_id>": {
+      "get": {
+        "summary": "GET /api/afs/history/<edge_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/history/<edge_id>",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/put_mus": {
+      "get": {
+        "summary": "GET /api/afs/put_mus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/put_mus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/resolve_mus": {
+      "get": {
+        "summary": "GET /api/afs/resolve_mus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/resolve_mus",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/checkpoint": {
+      "get": {
+        "summary": "GET /api/afs/checkpoint",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/checkpoint",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/restore": {
+      "get": {
+        "summary": "GET /api/afs/restore",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/restore",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/phi_gate": {
+      "get": {
+        "summary": "GET /api/afs/phi_gate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/phi_gate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/afs/psi_acl": {
+      "get": {
+        "summary": "GET /api/afs/psi_acl",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/afs/psi_acl",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/vertices": {
+      "get": {
+        "summary": "GET /api/hypergraph/vertices",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/vertices",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/hyperedges": {
+      "get": {
+        "summary": "GET /api/hypergraph/hyperedges",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/hyperedges",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/subgraph": {
+      "get": {
+        "summary": "GET /api/hypergraph/subgraph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/subgraph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/matroid-base": {
+      "get": {
+        "summary": "GET /api/hypergraph/matroid-base",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/matroid-base",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/k-hop": {
+      "get": {
+        "summary": "GET /api/hypergraph/k-hop",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/k-hop",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/matroid-unionfind": {
+      "get": {
+        "summary": "GET /api/hypergraph/matroid-unionfind",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/matroid-unionfind",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/distributed/query": {
+      "get": {
+        "summary": "GET /api/hypergraph/distributed/query",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/distributed/query",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/distributed/shards": {
+      "get": {
+        "summary": "GET /api/hypergraph/distributed/shards",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/distributed/shards",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/hypergraph/export-eml-v2": {
+      "get": {
+        "summary": "GET /api/hypergraph/export-eml-v2",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/hypergraph/export-eml-v2",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/nlu/parse": {
+      "get": {
+        "summary": "GET /api/v2/nlu/parse",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/nlu/parse",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/nlu/stats": {
+      "get": {
+        "summary": "GET /api/v2/nlu/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/nlu/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/godel/improve": {
+      "get": {
+        "summary": "GET /api/v2/godel/improve",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/godel/improve",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/godel/status": {
+      "get": {
+        "summary": "GET /api/v2/godel/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/godel/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/godel/mus/resolve": {
+      "get": {
+        "summary": "GET /api/v2/godel/mus/resolve",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/godel/mus/resolve",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/vector-clock/tick": {
+      "get": {
+        "summary": "GET /api/v2/vector-clock/tick",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/vector-clock/tick",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/vector-clock/compare": {
+      "get": {
+        "summary": "GET /api/v2/vector-clock/compare",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/vector-clock/compare",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/causal-delivery/deliver": {
+      "get": {
+        "summary": "GET /api/v2/causal-delivery/deliver",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/causal-delivery/deliver",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/causal-delivery/pending": {
+      "get": {
+        "summary": "GET /api/v2/causal-delivery/pending",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/causal-delivery/pending",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/agentweb/send": {
+      "get": {
+        "summary": "GET /api/v2/agentweb/send",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/agentweb/send",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/agentweb/receive": {
+      "get": {
+        "summary": "GET /api/v2/agentweb/receive",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/agentweb/receive",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/agentweb/status": {
+      "get": {
+        "summary": "GET /api/v2/agentweb/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/agentweb/status",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/fediverse/send": {
+      "get": {
+        "summary": "GET /api/v2/fediverse/send",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/fediverse/send",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/fediverse/receive": {
+      "get": {
+        "summary": "GET /api/v2/fediverse/receive",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/fediverse/receive",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/fediverse/stats": {
+      "get": {
+        "summary": "GET /api/v2/fediverse/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/fediverse/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mina/wrap-snap": {
+      "get": {
+        "summary": "GET /api/v2/mina/wrap-snap",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mina/wrap-snap",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mina/verify": {
+      "get": {
+        "summary": "GET /api/v2/mina/verify",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mina/verify",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/mina/stats": {
+      "get": {
+        "summary": "GET /api/v2/mina/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/mina/stats",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/celo/pay": {
+      "get": {
+        "summary": "GET /api/v2/celo/pay",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/celo/pay",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/celo/verify": {
+      "get": {
+        "summary": "GET /api/v2/celo/verify",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/celo/verify",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/celo/balance": {
+      "get": {
+        "summary": "GET /api/v2/celo/balance",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/celo/balance",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/world-model/learn": {
+      "get": {
+        "summary": "GET /api/v2/world-model/learn",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/world-model/learn",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/world-model/predict": {
+      "get": {
+        "summary": "GET /api/v2/world-model/predict",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/world-model/predict",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/world-model/counterfactual": {
+      "get": {
+        "summary": "GET /api/v2/world-model/counterfactual",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/world-model/counterfactual",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/aether/scm/summary": {
+      "get": {
+        "summary": "GET /api/v2/aether/scm/summary",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/aether/scm/summary",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/aether/scm/confounders": {
+      "get": {
+        "summary": "GET /api/v2/aether/scm/confounders",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/aether/scm/confounders",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/ehnn/forward": {
+      "get": {
+        "summary": "GET /api/v2/ehnn/forward",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/ehnn/forward",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/ehnn/expand-dim": {
+      "get": {
+        "summary": "GET /api/v2/ehnn/expand-dim",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/ehnn/expand-dim",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/ownthink/import": {
+      "get": {
+        "summary": "GET /api/v2/ownthink/import",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/ownthink/import",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/ownthink/progress": {
+      "get": {
+        "summary": "GET /api/v2/ownthink/progress",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/ownthink/progress",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/defense/check": {
+      "get": {
+        "summary": "GET /api/v2/defense/check",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/defense/check",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v2/defense/redteam": {
+      "get": {
+        "summary": "GET /api/v2/defense/redteam",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v2/defense/redteam",
+        "tags": [
+          "V2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gaussex/copartiality": {
+      "get": {
+        "summary": "GET /api/v3/gaussex/copartiality",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gaussex/copartiality",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gaussex/interconnect": {
+      "get": {
+        "summary": "GET /api/v3/gaussex/interconnect",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gaussex/interconnect",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/world-model/graph": {
+      "get": {
+        "summary": "GET /api/v3/world-model/graph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/world-model/graph",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/kernelcat/schedule": {
+      "get": {
+        "summary": "GET /api/v3/kernelcat/schedule",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/kernelcat/schedule",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/constitutional/generate": {
+      "get": {
+        "summary": "GET /api/v3/constitutional/generate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/constitutional/generate",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/alignment/scan": {
+      "get": {
+        "summary": "GET /api/v3/alignment/scan",
+        "tags": [
+          "Alignment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/alignment/scan",
+        "tags": [
+          "Alignment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/alignment/triad-status": {
+      "get": {
+        "summary": "GET /api/v3/alignment/triad-status",
+        "tags": [
+          "Alignment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/alignment/triad-status",
+        "tags": [
+          "Alignment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/goal/contract-draft": {
+      "get": {
+        "summary": "GET /api/v3/goal/contract-draft",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/goal/contract-draft",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/goal/soul-status": {
+      "get": {
+        "summary": "GET /api/v3/goal/soul-status",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/goal/soul-status",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/goal/cron-register": {
+      "get": {
+        "summary": "GET /api/v3/goal/cron-register",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/goal/cron-register",
+        "tags": [
+          "GoalAgent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/cognitive-health/check": {
+      "get": {
+        "summary": "GET /api/v3/cognitive-health/check",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/cognitive-health/check",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/cognitive-health/stats": {
+      "get": {
+        "summary": "GET /api/v3/cognitive-health/stats",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/cognitive-health/stats",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/cognitive-health/pause": {
+      "get": {
+        "summary": "GET /api/v3/cognitive-health/pause",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/cognitive-health/pause",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/cognitive-health/restart": {
+      "get": {
+        "summary": "GET /api/v3/cognitive-health/restart",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/cognitive-health/restart",
+        "tags": [
+          "CognitiveHealth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/gap-analysis": {
+      "get": {
+        "summary": "GET /api/v3/grill/gap-analysis",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/gap-analysis",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/gate-status": {
+      "get": {
+        "summary": "GET /api/v3/grill/gate-status",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/gate-status",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/trace": {
+      "get": {
+        "summary": "GET /api/v3/grill/trace",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/trace",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/trace/verify": {
+      "get": {
+        "summary": "GET /api/v3/grill/trace/verify",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/trace/verify",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/gap/close": {
+      "get": {
+        "summary": "GET /api/v3/grill/gap/close",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/gap/close",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/grill/release": {
+      "get": {
+        "summary": "GET /api/v3/grill/release",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/grill/release",
+        "tags": [
+          "GrillMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/fibonacci": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/fibonacci",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/fibonacci",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/lucas": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/lucas",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/lucas",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/bagua": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/bagua",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/bagua",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/invariants": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/invariants",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/invariants",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/dna/create": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/dna/create",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/dna/create",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/dna/check": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/dna/check",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/dna/check",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/luzhao/dna/bagua-trigger": {
+      "get": {
+        "summary": "GET /api/v3/luzhao/dna/bagua-trigger",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/luzhao/dna/bagua-trigger",
+        "tags": [
+          "LuZhao"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gat/theories": {
+      "get": {
+        "summary": "GET /api/v3/gat/theories",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gat/theories",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gat/theory/create": {
+      "get": {
+        "summary": "GET /api/v3/gat/theory/create",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gat/theory/create",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gat/theory/free-model": {
+      "get": {
+        "summary": "GET /api/v3/gat/theory/free-model",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gat/theory/free-model",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/gat/theory/map": {
+      "get": {
+        "summary": "GET /api/v3/gat/theory/map",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/gat/theory/map",
+        "tags": [
+          "GAT"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/lob/create": {
+      "get": {
+        "summary": "GET /api/v3/financial/lob/create",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/lob/create",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/lob/add-order": {
+      "get": {
+        "summary": "GET /api/v3/financial/lob/add-order",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/lob/add-order",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/lob/match": {
+      "get": {
+        "summary": "GET /api/v3/financial/lob/match",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/lob/match",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/lob/status/<session_id>": {
+      "get": {
+        "summary": "GET /api/v3/financial/lob/status/<session_id>",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/lob/status/<session_id>",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/mm/provide": {
+      "get": {
+        "summary": "GET /api/v3/financial/mm/provide",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/mm/provide",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/slippage/compute": {
+      "get": {
+        "summary": "GET /api/v3/financial/slippage/compute",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/slippage/compute",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/enpv": {
+      "get": {
+        "summary": "GET /api/v3/financial/enpv",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/enpv",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/financial/circuit-break": {
+      "get": {
+        "summary": "GET /api/v3/financial/circuit-break",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/financial/circuit-break",
+        "tags": [
+          "Financial"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/economy/create": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/economy/create",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/economy/create",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/agent/register": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/agent/register",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/agent/register",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/ubi/payout": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/ubi/payout",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/ubi/payout",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/trade": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/trade",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/trade",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/economy/<economy_id>/snapshot": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/economy/<economy_id>/snapshot",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/economy/<economy_id>/snapshot",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v3/tokenized/agent/<economy_id>/<agent_id>/balance": {
+      "get": {
+        "summary": "GET /api/v3/tokenized/agent/<economy_id>/<agent_id>/balance",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/v3/tokenized/agent/<economy_id>/<agent_id>/balance",
+        "tags": [
+          "Misc"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}
