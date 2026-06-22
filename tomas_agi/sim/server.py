@@ -4209,7 +4209,7 @@ def api_v3_constitutional_generate():
 def v310_alignment_scan():
     """扫描输出文本的对齐风险：Lock-in 否决扫描 + Rearing 反伪装 + Governance SLA 审计"""
     try:
-        from sim.alignment_triad import AlignmentTriad
+        from alignment_triad import AlignmentTriad
     except ImportError:
         return jsonify({"error": "v3.10 alignment_triad module not available"}), 503
     try:
@@ -4227,7 +4227,7 @@ def v310_alignment_scan():
 def v310_alignment_triad_status():
     """获取对齐三范式完整状态报告"""
     try:
-        from sim.alignment_triad import AlignmentTriad
+        from alignment_triad import AlignmentTriad
     except ImportError:
         return jsonify({"error": "v3.10 alignment_triad module not available"}), 503
     try:
@@ -4242,7 +4242,7 @@ def v310_alignment_triad_status():
 def v310_goal_contract_draft():
     """起草 GoalPro Goal Contract → ψ-Anchor DSL"""
     try:
-        from sim.goal_directed_agent import GoalContract
+        from goal_directed_agent import GoalContract
     except ImportError:
         return jsonify({"error": "v3.10 goal_directed_agent module not available"}), 503
     try:
@@ -4268,7 +4268,7 @@ def v310_goal_contract_draft():
 def v310_goal_soul_status():
     """Soul-Graph 增长指标 + MUS 漂移检测"""
     try:
-        from sim.goal_directed_agent import TOMASGoalDirectedAgent
+        from goal_directed_agent import TOMASGoalDirectedAgent
     except ImportError:
         return jsonify({"error": "v3.10 goal_directed_agent module not available"}), 503
     try:
@@ -4284,7 +4284,7 @@ def v310_goal_soul_status():
 def v310_goal_cron_register():
     """注册 κ-Snap CronFire 周期任务"""
     try:
-        from sim.goal_directed_agent import TOMASGoalDirectedAgent
+        from goal_directed_agent import TOMASGoalDirectedAgent
     except ImportError:
         return jsonify({"error": "v3.10 goal_directed_agent module not available"}), 503
     try:
@@ -4308,7 +4308,7 @@ def v310_goal_cron_register():
 def v311_cognitive_health_check():
     """运行认知健康检查管道"""
     try:
-        from sim.cognitive_health import TOMASCognitivelyHealthyAGI
+        from cognitive_health import TOMASCognitivelyHealthyAGI
     except ImportError:
         return jsonify({"error": "v3.11 cognitive_health module not available"}), 503
     try:
@@ -4334,14 +4334,14 @@ def v311_cognitive_health_check():
 def v311_cognitive_health_stats():
     """获取认知健康统计"""
     try:
-        from sim.cognitive_health import TOMASCognitivelyHealthyAGI
+        from cognitive_health import TOMASCognitivelyHealthyAGI
     except ImportError:
         return jsonify({"error": "v3.11 cognitive_health module not available"}), 503
     try:
         ch = TOMASCognitivelyHealthyAGI()
         report = ch.health_check_pipeline()
         # 运行可证伪预测
-        from sim.cognitive_health import FalsifiablePredictions
+        from cognitive_health import FalsifiablePredictions
         fp = FalsifiablePredictions()
         p_ad1 = fp.P_AD1_habit_decay(N=10, D0=1.0, alpha=0.1)
         return jsonify({
@@ -4361,7 +4361,7 @@ def v311_cognitive_health_stats():
 def v311_cognitive_health_pause():
     """强制暂停 Agent（模拟回路检测触发）"""
     try:
-        from sim.cognitive_health import TOMASCognitivelyHealthyAGI
+        from cognitive_health import TOMASCognitivelyHealthyAGI
     except ImportError:
         return jsonify({"error": "v3.11 cognitive_health module not available"}), 503
     try:
@@ -4380,7 +4380,7 @@ def v311_cognitive_health_pause():
 def v311_cognitive_health_restart():
     """手动重启（需要 override_code）"""
     try:
-        from sim.cognitive_health import TOMASCognitivelyHealthyAGI
+        from cognitive_health import TOMASCognitivelyHealthyAGI
     except ImportError:
         return jsonify({"error": "v3.11 cognitive_health module not available"}), 503
     try:
@@ -4405,7 +4405,7 @@ def v311_cognitive_health_restart():
 def v311_grill_gap_analysis():
     """对需求文本进行 DIKWP 五层缺口分析"""
     try:
-        from sim.grill_me_engine import DIKWPGapAnalyzer
+        from grill_me_engine import DIKWPGapAnalyzer
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4439,7 +4439,7 @@ def v311_grill_gap_analysis():
 def v311_grill_gate_status():
     """获取闸门状态（所有已注册需求）"""
     try:
-        from sim.grill_me_engine import GrillExecutionGate
+        from grill_me_engine import GrillExecutionGate
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4462,7 +4462,7 @@ def v311_grill_gate_status():
 def v311_grill_trace():
     """获取需求溯源链"""
     try:
-        from sim.grill_me_engine import RequirementTracer
+        from grill_me_engine import RequirementTracer
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4484,7 +4484,7 @@ def v311_grill_trace():
 def v311_grill_trace_verify():
     """验证溯源链防篡改"""
     try:
-        from sim.grill_me_engine import RequirementTracer
+        from grill_me_engine import RequirementTracer
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4510,7 +4510,7 @@ def v311_grill_trace_verify():
 def v311_grill_gap_close():
     """用证据关闭指定缺口"""
     try:
-        from sim.grill_me_engine import GrillExecutionGate, DIKWPGapAnalyzer
+        from grill_me_engine import GrillExecutionGate, DIKWPGapAnalyzer
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4539,7 +4539,7 @@ def v311_grill_gap_close():
 def v311_grill_release():
     """释放需求（所有缺口关闭后）"""
     try:
-        from sim.grill_me_engine import GrillExecutionGate, DIKWPGapAnalyzer
+        from grill_me_engine import GrillExecutionGate, DIKWPGapAnalyzer
     except ImportError:
         return jsonify({"error": "v3.11 grill_me_engine module not available"}), 503
     try:
@@ -4631,7 +4631,7 @@ class LOBSessionStore:
     @staticmethod
     def _deserialize_order(data: Dict[str, Any]):
         """从 dict 重建 Order dataclass"""
-        from sim.financial_world_model import Order, OrderSide
+        from financial_world_model import Order, OrderSide
         return Order(
             order_id=data["order_id"],
             side=OrderSide(data["side"]),
@@ -4652,7 +4652,7 @@ class LOBSessionStore:
 
     def _deserialize_lob(self, data: Dict[str, Any]):
         """重建 LimitOrderBook"""
-        from sim.financial_world_model import LimitOrderBook
+        from financial_world_model import LimitOrderBook
         lob = LimitOrderBook()
         lob._order_id_counter = data["order_id_counter"]
         lob._last_mid = data["last_mid"]
@@ -4676,7 +4676,7 @@ class LOBSessionStore:
     @staticmethod
     def _deserialize_mm(data: Dict[str, Any]):
         """重建 MarketMaker"""
-        from sim.financial_world_model import MarketMaker
+        from financial_world_model import MarketMaker
         mm = MarketMaker(
             spread=data["spread"],
             inventory_target=data["inventory_target"],
@@ -4703,7 +4703,7 @@ class LOBSessionStore:
     @staticmethod
     def _deserialize_cb(data: Dict[str, Any]):
         """重建 LiquidityCircuitBreaker"""
-        from sim.financial_world_model import (
+        from financial_world_model import (
             LiquidityCircuitBreaker, CircuitState,
         )
         cb = LiquidityCircuitBreaker(
@@ -4724,7 +4724,7 @@ class LOBSessionStore:
     @staticmethod
     def _deserialize_sm(data: Dict[str, Any]):
         """重建 SlippageModel"""
-        from sim.financial_world_model import SlippageModel
+        from financial_world_model import SlippageModel
         return SlippageModel(base_slippage_rate=data["base_slippage_rate"])
 
     @staticmethod
@@ -4735,7 +4735,7 @@ class LOBSessionStore:
     @staticmethod
     def _deserialize_enpv(data: Dict[str, Any]):
         """重建 ENPVCalculator"""
-        from sim.financial_world_model import ENPVCalculator
+        from financial_world_model import ENPVCalculator
         return ENPVCalculator(risk_free_rate=data["risk_free_rate"])
 
     def _serialize_world(self, world: Dict[str, Any]) -> Dict[str, Any]:
@@ -4750,7 +4750,7 @@ class LOBSessionStore:
 
     def _deserialize_world(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """从序列化数据重建完整金融世界模型"""
-        from sim.financial_world_model import build_financial_world
+        from financial_world_model import build_financial_world
         # 先构建默认世界（确保所有 key 存在），再用持久化数据覆盖
         world = build_financial_world()
         if data.get("lob"):
@@ -4857,7 +4857,7 @@ def v312_luzhao_fibonacci():
     try:
         n = int(request.args.get("n", 20))
         n = max(1, min(n, 100))
-        from sim.luzhao_dna import fibonacci_numbers
+        from luzhao_dna import fibonacci_numbers
         return jsonify({"n": n, "values": fibonacci_numbers(n)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -4867,7 +4867,7 @@ def v312_luzhao_lucas():
     try:
         n = int(request.args.get("n", 20))
         n = max(1, min(n, 100))
-        from sim.luzhao_dna import lucas_numbers
+        from luzhao_dna import lucas_numbers
         return jsonify({"n": n, "values": lucas_numbers(n)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -4875,7 +4875,7 @@ def v312_luzhao_lucas():
 @app.route('/api/v3/luzhao/bagua', methods=['GET'])
 def v312_luzhao_bagua():
     try:
-        from sim.luzhao_dna import bagua_constants
+        from luzhao_dna import bagua_constants
         return jsonify({"constants": bagua_constants()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -4883,7 +4883,7 @@ def v312_luzhao_bagua():
 @app.route('/api/v3/luzhao/invariants', methods=['GET'])
 def v312_luzhao_invariants():
     try:
-        from sim.luzhao_dna import get_chinese_market_invariants
+        from luzhao_dna import get_chinese_market_invariants
         return jsonify({"invariants": get_chinese_market_invariants()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -4891,7 +4891,7 @@ def v312_luzhao_invariants():
 @app.route('/api/v3/luzhao/dna/create', methods=['POST'])
 def v312_luzhao_dna_create():
     try:
-        from sim.luzhao_dna import LuZhaoDNA
+        from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
         dna = LuZhaoDNA(
             first_wave_duration=int(data.get("duration", 12)),
@@ -4905,7 +4905,7 @@ def v312_luzhao_dna_create():
 @app.route('/api/v3/luzhao/dna/check', methods=['POST'])
 def v312_luzhao_dna_check():
     try:
-        from sim.luzhao_dna import LuZhaoDNA
+        from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
         dna = LuZhaoDNA(
             first_wave_duration=int(data.get("duration", 12)),
@@ -4920,7 +4920,7 @@ def v312_luzhao_dna_check():
 @app.route('/api/v3/luzhao/dna/bagua-trigger', methods=['POST'])
 def v312_luzhao_bagua_trigger():
     try:
-        from sim.luzhao_dna import LuZhaoDNA
+        from luzhao_dna import LuZhaoDNA
         data = request.get_json(silent=True) or {}
         prices = data.get("prices", [])
         if not prices:
@@ -4935,7 +4935,7 @@ def v312_luzhao_bagua_trigger():
 @app.route('/api/v3/gat/theories', methods=['GET'])
 def v312_gat_theories():
     try:
-        from sim.gat_axioms import ArcDSL_GAT, OctonionGAT
+        from gat_axioms import ArcDSL_GAT, OctonionGAT
         arc = ArcDSL_GAT()
         oct_gat = OctonionGAT()
         return jsonify({"theories": [
@@ -4950,7 +4950,7 @@ def v312_gat_theories():
 @app.route('/api/v3/gat/theory/create', methods=['POST'])
 def v312_gat_theory_create():
     try:
-        from sim.gat_axioms import GATTheory
+        from gat_axioms import GATTheory
         data = request.get_json(silent=True) or {}
         t = GATTheory(name=data.get("name", "CustomTheory"))
         for s in data.get("sorts", []):
@@ -4970,7 +4970,7 @@ def v312_gat_theory_create():
 @app.route('/api/v3/gat/theory/free-model', methods=['POST'])
 def v312_gat_theory_free_model():
     try:
-        from sim.gat_axioms import ArcDSL_GAT, OctonionGAT
+        from gat_axioms import ArcDSL_GAT, OctonionGAT
         data = request.get_json(silent=True) or {}
         name = data.get("theory_name", "ArcDSL_GAT")
         if name == "ArcDSL_GAT":
@@ -4987,7 +4987,7 @@ def v312_gat_theory_free_model():
 @app.route('/api/v3/gat/theory/map', methods=['POST'])
 def v312_gat_theory_map():
     try:
-        from sim.gat_axioms import ArcDSL_GAT, OctonionGAT
+        from gat_axioms import ArcDSL_GAT, OctonionGAT
         data = request.get_json(silent=True) or {}
         src = ArcDSL_GAT() if data.get("source", "ArcDSL_GAT") == "ArcDSL_GAT" else OctonionGAT()
         tgt = OctonionGAT() if data.get("target", "OctonionGAT") == "OctonionGAT" else ArcDSL_GAT()
@@ -5000,7 +5000,7 @@ def v312_gat_theory_map():
 @app.route('/api/v3/financial/lob/create', methods=['POST'])
 def v312_financial_lob_create():
     try:
-        from sim.financial_world_model import build_financial_world
+        from financial_world_model import build_financial_world
         import uuid
         session_id = str(uuid.uuid4())[:8]
         world = build_financial_world()
@@ -5012,7 +5012,7 @@ def v312_financial_lob_create():
 @app.route('/api/v3/financial/lob/add-order', methods=['POST'])
 def v312_financial_lob_add_order():
     try:
-        from sim.financial_world_model import OrderSide
+        from financial_world_model import OrderSide
         data = request.get_json(silent=True) or {}
         sid = data.get("session_id", "")
         world = _lob_store.get(sid)
@@ -5033,7 +5033,7 @@ def v312_financial_lob_add_order():
 @app.route('/api/v3/financial/lob/match', methods=['POST'])
 def v312_financial_lob_match():
     try:
-        from sim.financial_world_model import OrderSide
+        from financial_world_model import OrderSide
         data = request.get_json(silent=True) or {}
         sid = data.get("session_id", "")
         world = _lob_store.get(sid)
@@ -5051,7 +5051,7 @@ def v312_financial_lob_match():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/v3/financial/lob/<session_id>', methods=['GET'])
+@app.route('/api/v3/financial/lob/status/<session_id>', methods=['GET'])
 def v312_financial_lob_status(session_id):
     try:
         world = _lob_store.get(session_id)
@@ -5093,7 +5093,7 @@ def v312_financial_mm_provide():
 @app.route('/api/v3/financial/slippage/compute', methods=['POST'])
 def v312_financial_slippage():
     try:
-        from sim.financial_world_model import SlippageModel
+        from financial_world_model import SlippageModel
         data = request.get_json(silent=True) or {}
         sm = SlippageModel()
         slippage = sm.compute_slippage(
@@ -5106,7 +5106,7 @@ def v312_financial_slippage():
 @app.route('/api/v3/financial/enpv', methods=['POST'])
 def v312_financial_enpv():
     try:
-        from sim.financial_world_model import ENPVCalculator
+        from financial_world_model import ENPVCalculator
         data = request.get_json(silent=True) or {}
         calc = ENPVCalculator()
         decision = calc.compute_enpv_detailed(
@@ -5148,7 +5148,7 @@ def v312_financial_circuit_break():
 @app.route('/api/v3/tokenized/economy/create', methods=['POST'])
 def v312_tokenized_economy_create():
     try:
-        from sim.tokenized_economy import AgentEconomy
+        from tokenized_economy import AgentEconomy
         import uuid
         data = request.get_json(silent=True) or {}
         econ = AgentEconomy(
@@ -5164,7 +5164,7 @@ def v312_tokenized_economy_create():
 @app.route('/api/v3/tokenized/agent/register', methods=['POST'])
 def v312_tokenized_agent_register():
     try:
-        from sim.tokenized_economy import AgentType
+        from tokenized_economy import AgentType
         data = request.get_json(silent=True) or {}
         eid = data.get("economy_id", "")
         if eid not in _economy_sessions:

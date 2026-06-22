@@ -4,7 +4,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { loadEMLFromBuffer, TokenBridgeClient } from './api/distiller'
 import { ApiKeyModal } from './components/ApiKeyModal'
-import { ChatArea } from './components/ChatArea'
 import Dashboard from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
 import { useChat } from './hooks/useChat'
@@ -13,6 +12,8 @@ import type { AppMode, ChatEMLState } from './types'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // ── 按需加载的面板 (React.lazy) ──────────────────────
+// 首屏非必需组件全部懒加载，减小主 bundle 体积
+const ChatArea = lazy(() => import('./components/ChatArea').then(m => ({ default: m.ChatArea })))
 // 具名导出的组件需要 .then(m => ({ default: m.X }))
 const DistillPanel = lazy(() => import('./components/DistillPanel').then(m => ({ default: m.DistillPanel })))
 const TechDocs = lazy(() => import('./components/TechDocs').then(m => ({ default: m.TechDocs })))

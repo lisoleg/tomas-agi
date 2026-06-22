@@ -42,7 +42,7 @@ export function FinancialWorldPanel() {
   const fetchStatus = async () => {
     if (!sessionId) return
     try {
-      const resp = await fetch(`/api/v3/financial/lob/${sessionId}`)
+      const resp = await fetch(`/api/v3/financial/lob/status/${sessionId}`)
       if (resp.ok) setLobStatus(await resp.json())
     } catch { /* ignore */ }
   }
