@@ -5,8 +5,8 @@
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](./LICENSE)
-[![Modules](https://img.shields.io/badge/modules-97+-orange.svg)](./sim/)
-[![Tests](https://img.shields.io/badge/tests-1368%20PASS-brightgreen.svg)](./tests/)
+[![Modules](https://img.shields.io/badge/modules-102+-orange.svg)](./sim/)
+[![Tests](https://img.shields.io/badge/tests-1610%20PASS-brightgreen.svg)](./tests/)
 [![CUDA](https://img.shields.io/badge/CUDA-supported-success.svg)](./kernel/)
 [![FPGA](https://img.shields.io/badge/FPGA-verified-blueviolet.svg)](./rtl/)
 [![DB](https://img.shields.io/badge/knowledge_triples-101M+-blue.svg)]()
@@ -116,6 +116,11 @@ graph TD
 - 🪙 **代币化经济（v3.12）** — Agent 贡献度量化（κ-Snap 审计链），代币发行/销毁/转移，Celo 链上结算，通胀控制参数
 - 🐡 **Fugu Conductor 编排层（v3.13）** — 多智能体编排引擎，自适应任务分解（DAG 拓扑排序 + 依赖感知调度），Agent 注册表，任务状态机（PENDING → RUNNING → COMPLETED/FAILED）
 - ⚡ **P0-P2 性能优化（v3.13）** — 4 端点分页支持，SQLite 索引优化 + 新增 predicate 索引，API 响应缓存，React.memo + useMemo，Vite 分包构建，CI/CD 流水线，OwnThink 断点续跑增强
+- 🌀 **叠加态几何（v3.14）** — Thomson 问题球面排布，E8 格最优堆积（π⁴/384 密度），相变检测（一级导数跳变），特权基分析（ReLU 对称性破缺），对抗脆弱性度量（干扰耦合 + 条件数）
+- 🔢 **数学大统一 CCG（v3.14）** — 热带半环骨架（MDL 极限），离散 Ricci 流（共形参数化），UV/IR 对偶引擎（傅里叶尺度交换），Gromov-Wasserstein 柏拉图趋同，太一几何全景定位表
+- 📚 **自适应库学习（v3.14）** — α/β 在线学习预算分配，Sleep-Step 子树归纳（频率统计→原语注册），阴龙积八元数耦合（Cayley-Dickson 构造），条件 ΔT 归纳，Rice 定理上界（LLM 0.35 vs TOMAS 1.0）
+- 🔺 **CHL 同构（v3.14）** — Curry-Howard-Lambek 三角映射（命题↔程序↔态射），κ-Snap 证明搜索（BFS + MDL 排序），Sleep-Step 公理扩展，证明正规化，范畴态射组合
+- ⚔️ **太一互搏 Agent（v3.14）** — L3 差分感知（连通域噪声过滤），L2 DFS 回溯博弈规划，L4 贝叶斯熔断（RHAE 效率预判），博弈语义引擎（证实者 vs 证伪者），Physical AI 定理（内思即外作）
 
 ---
 
@@ -257,6 +262,11 @@ tomas-agi/
 │   ├── fin_world_model.py        # 金融市场世界模型·SCM因果图（v3.12）
 │   ├── token_economy.py          # 代币化经济·Agent贡献度/链上结算（v3.12）
 │   ├── orchestrator.py           # Fugu Conductor·多智能体编排引擎（v3.13）
+│   ├── superposition_geometry.py # 叠加态几何·Thomson/E8/相变/特权基（v3.14）
+│   ├── math_unification_ccg.py   # 数学大统一·热带半环/Ricci流/UV-IR对偶（v3.14）
+│   ├── adaptive_library.py       # 自适应库·Sleep-Step/阴龙积/Rice定理（v3.14）
+│   ├── chl_isomorphism.py        # CHL同构·命题↔程序↔态射/κ-Snap搜索（v3.14）
+│   ├── taiyi_mutual_duel.py      # 太一互搏·L3感知/L2规划/L4熔断/博弈语义（v3.14）
 │   ├── eml_dimred/               # 数学降维工具箱（7 模块）
 │   │   ├── hyperedge.py          # HypEdge/EMLVertex + EML 加载
 │   │   ├── matroid.py            # 拟阵贪心剪枝（κ-Gate 最优独立集）

@@ -1,6 +1,6 @@
 # TOMAS-AGI 系统架构设计文档
 
-> 版本：v3.13 | 日期：2026-06-23 | 架构师：高见远（Gao）
+> 版本：v3.14 | 日期：2026-06-24 | 架构师：高见远（Gao）
 
 ---
 
@@ -165,6 +165,11 @@ tomas_agi/
 │   │   ├── brown_miklos.py             # Brown-Miklós FPT 度类压缩
 │   │   ├── strf.py                     # STR-F 四大等价变换
 │   │   └── pipeline.py                 # slim_eml 四合一流水线
+│   ├── superposition_geometry.py         # 叠加态几何·Thomson/E8/相变/特权基（v3.14）
+│   ├── math_unification_ccg.py           # 数学大统一·热带半环/Ricci流/UV-IR对偶（v3.14）
+│   ├── adaptive_library.py               # 自适应库·Sleep-Step/阴龙积/Rice定理（v3.14）
+│   ├── chl_isomorphism.py                # CHL同构·命题↔程序↔态射/κ-Snap搜索（v3.14）
+│   ├── taiyi_mutual_duel.py              # 太一互搏·L3感知/L2规划/L4熔断/博弈语义（v3.14）
 │   └── ...
 ├── kernel/                             # C 内核模块（~244K 行）
 │   ├── tproc_core.c                    # T-Processor主模块

@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Dict, Any
 import uuid
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -5923,6 +5924,718 @@ def v312_tokenized_agent_balance(economy_id, agent_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ===== V3.14 REST Endpoints (25 endpoints: 5 modules × 5) =====
+# 理论参考：微信公众号《NASGA中的均匀超图谱》——谱折叠、κ-截断、结合子归零退化
+
+# --- 1. Superposition Geometry (5 endpoints) ---
+
+@app.route('/api/v3/superposition/config', methods=['GET'])
+def v314_superposition_config():
+    """V314 Superposition Config
+    ---
+    tags:
+      - SuperpositionGeometry
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        n_features = int(request.args.get("n_features", 10))
+        n_dims = int(request.args.get("n_dims", 8))
+        sparsity = float(request.args.get("sparsity", 0.5))
+        from superposition_geometry import SuperpositionConfig
+        cfg = SuperpositionConfig(n_features=n_features, n_dims=n_dims, sparsity=sparsity)
+        return jsonify(cfg.to_dict())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/superposition/thomson-solve', methods=['GET'])
+def v314_superposition_thomson():
+    """V314 Superposition Thomson Solve
+    ---
+    tags:
+      - SuperpositionGeometry
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        n_points = int(request.args.get("n_points", 6))
+        max_iter = int(request.args.get("max_iter", 500))
+        n_points = max(1, min(n_points, 50))
+        from superposition_geometry import ThomsonProblemSolver
+        solver = ThomsonProblemSolver(learning_rate=0.005, seed=42)
+        positions = solver.solve(n_points, max_iter=max_iter)
+        return jsonify({
+            "n_points": n_points,
+            "positions": positions.tolist(),
+            "energy": float(solver.energy(positions)),
+            "geometry_type": solver.get_geometry_type(n_points),
+            "symmetry_group": solver.symmetry_group(n_points),
+            "iterations": len(solver.history),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/superposition/e8-pack', methods=['POST'])
+def v314_superposition_e8():
+    """V314 Superposition E8 Pack
+    ---
+    tags:
+      - SuperpositionGeometry
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        features = np.array(data.get("features", [[1.0] * 8]), dtype=float)
+        n_dims = int(data.get("n_dims", 8))
+        from superposition_geometry import E8LatticePacker
+        packer = E8LatticePacker()
+        emb = packer.pack(features, n_dims=n_dims)
+        interf = packer.interference_matrix(emb)
+        return jsonify({
+            "embedding": emb.tolist(),
+            "interference_matrix": interf.tolist(),
+            "packing_density": packer.packing_density(),
+            "kissing_number": packer.kissing_number(),
+            "minimal_norm": packer.minimal_norm(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/superposition/phase-transition', methods=['POST'])
+def v314_superposition_phase():
+    """V314 Superposition Phase Transition
+    ---
+    tags:
+      - SuperpositionGeometry
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        sparsity_series = np.array(data.get("sparsity_series", []), dtype=float)
+        error_series = np.array(data.get("error_series", []), dtype=float)
+        threshold = float(data.get("derivative_threshold", 0.5))
+        from superposition_geometry import PhaseTransitionDetector
+        detector = PhaseTransitionDetector(derivative_threshold=threshold)
+        result = detector.detect(sparsity_series, error_series)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/superposition/privileged-basis', methods=['POST'])
+def v314_superposition_basis():
+    """V314 Superposition Privileged Basis
+    ---
+    tags:
+      - SuperpositionGeometry
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        activations = np.array(data.get("activations", []), dtype=float)
+        has_relu = bool(data.get("has_relu", True))
+        from superposition_geometry import PrivilegedBasisAnalyzer, AdversarialVulnerabilityMetric
+        analyzer = PrivilegedBasisAnalyzer()
+        result = analyzer.analyze(activations, has_relu)
+        vuln = AdversarialVulnerabilityMetric()
+        result["vulnerability_score"] = vuln.vulnerability_score(activations if activations.ndim == 2 else activations.reshape(1, -1))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- 2. Math Unification CCG (5 endpoints) ---
+
+@app.route('/api/v3/math-ccg/tropical-polynomial', methods=['GET'])
+def v314_math_ccg_tropical():
+    """V314 Math CCG Tropical Polynomial
+    ---
+    tags:
+      - MathUnificationCCG
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        import json as _json
+        coeffs_raw = request.args.get("coeffs", "[1,3,2]")
+        coeffs = _json.loads(coeffs_raw)
+        x = float(request.args.get("x", 0.0))
+        from math_unification_ccg import TropicalSemiring, TropicalSkeleton
+        ts = TropicalSemiring()
+        val = ts.tropical_polynomial(coeffs, x)
+        roots = ts.tropical_roots(coeffs)
+        skel = TropicalSkeleton()
+        skel_result = skel.extract(coeffs)
+        betti = skel.betti_numbers(skel_result)
+        return jsonify({
+            "coeffs": coeffs,
+            "x": x,
+            "value": val,
+            "roots": roots,
+            "skeleton": skel_result,
+            "betti_numbers": betti,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/math-ccg/circle-packing', methods=['POST'])
+def v314_math_ccg_circle():
+    """V314 Math CCG Circle Packing
+    ---
+    tags:
+      - MathUnificationCCG
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        adj = np.array(data.get("adjacency_matrix", [[0, 1], [1, 0]]), dtype=float)
+        from math_unification_ccg import ConformalGeometryEngine
+        cg = ConformalGeometryEngine()
+        circles = cg.circle_packing(adj)
+        return jsonify({
+            "circles": [[float(c[0]), float(c[1]), float(c[2])] for c in circles],
+            "n_nodes": len(circles),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/math-ccg/ricci-flow', methods=['POST'])
+def v314_math_ccg_ricci():
+    """V314 Math CCG Ricci Flow
+    ---
+    tags:
+      - MathUnificationCCG
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        edge_weights = np.array(data.get("edge_weights", [[0, 1], [1, 0]]), dtype=float)
+        target_curvatures = np.array(data.get("target_curvatures", [0, 0]), dtype=float)
+        max_iter = int(data.get("max_iter", 100))
+        from math_unification_ccg import ConformalGeometryEngine
+        cg = ConformalGeometryEngine()
+        updated = cg.discrete_ricci_flow(edge_weights, target_curvatures, max_iter=max_iter)
+        return jsonify({
+            "updated_weights": updated.tolist(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/math-ccg/uv-ir-duality', methods=['POST'])
+def v314_math_ccg_uvir():
+    """V314 Math CCG UV-IR Duality
+    ---
+    tags:
+      - MathUnificationCCG
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        signal = np.array(data.get("signal", [1, 2, 3, 4, 3, 2, 1, 0]), dtype=float)
+        from math_unification_ccg import UVIRDualityEngine
+        uv = UVIRDualityEngine()
+        fft_result = uv.fourier_as_scale_exchange(signal)
+        sym = uv.uv_ir_symmetry_check(fft_result["spectrum"])
+        return jsonify({
+            "magnitude": fft_result["magnitude"].tolist(),
+            "uv_energy": float(fft_result["uv_energy"]),
+            "ir_energy": float(fft_result["ir_energy"]),
+            "symmetry": sym,
+            "self_dual_fixed_point": uv.self_dual_fixed_point(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/math-ccg/gw-distance', methods=['POST'])
+def v314_math_ccg_gw():
+    """V314 Math CCG Gromov-Wasserstein Distance
+    ---
+    tags:
+      - MathUnificationCCG
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        rep_a = np.array(data.get("rep_a", [[1, 0], [0, 1]]), dtype=float)
+        rep_b = np.array(data.get("rep_b", [[1, 0], [0, 1]]), dtype=float)
+        from math_unification_ccg import PlatonicConvergenceMeasurer, MathUnificationTable
+        pcm = PlatonicConvergenceMeasurer()
+        gw = pcm.gromov_wasserstein_distance(rep_a, rep_b)
+        sym = pcm.shared_symmetry_metric(rep_a, rep_b)
+        branches = MathUnificationTable.list_branches()
+        return jsonify({
+            "gw_distance": gw,
+            "shared_symmetry": sym,
+            "unification_branches": branches,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- 3. Adaptive Library (5 endpoints) ---
+
+@app.route('/api/v3/adaptive/budget', methods=['GET'])
+def v314_adaptive_budget():
+    """V314 Adaptive Budget
+    ---
+    tags:
+      - AdaptiveLibrary
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        mdl_cost = float(request.args.get("mdl_cost", 5.0))
+        freq = int(float(request.args.get("freq", 3)))
+        alpha = float(request.args.get("alpha", 1.0))
+        beta = float(request.args.get("beta", 1.0))
+        b_base = float(request.args.get("b_base", 10.0))
+        from adaptive_library import AdaptiveParams
+        params = AdaptiveParams(alpha=alpha, beta=beta, b_base=b_base)
+        budget = params.compute_budget(mdl_cost, freq)
+        return jsonify({
+            "budget": budget,
+            "params": params.to_dict(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/adaptive/width-control', methods=['GET'])
+def v314_adaptive_width():
+    """V314 Adaptive Width Control
+    ---
+    tags:
+      - AdaptiveLibrary
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        depth = int(request.args.get("depth", 0))
+        max_depth = int(request.args.get("max_depth", 3))
+        budget = float(request.args.get("budget", 10.0))
+        from adaptive_library import AdaptiveParams
+        params = AdaptiveParams()
+        width = params.ast_width_control(depth, max_depth, budget)
+        return jsonify({
+            "depth": depth,
+            "max_depth": max_depth,
+            "budget": budget,
+            "allocated_width": width,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/adaptive/sleep-step', methods=['POST'])
+def v314_adaptive_sleep():
+    """V314 Adaptive Sleep-Step
+    ---
+    tags:
+      - AdaptiveLibrary
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        programs_raw = data.get("programs", [])
+        from adaptive_library import AdaptiveLibrary, ProgramNode
+
+        def _build_node(p: dict) -> ProgramNode:
+            """递归构建 ProgramNode"""
+            op = p.get("op", "noop")
+            args = p.get("args", [])
+            children_raw = p.get("children", [])
+            children = [_build_node(c) for c in children_raw]
+            return ProgramNode(op, args, children)
+
+        lib = AdaptiveLibrary()
+        programs = [_build_node(p) for p in programs_raw]
+        new_prims = lib.sleep_step(programs)
+        return jsonify({
+            "new_primitives": new_prims,
+            "closure_size": lib.closure_size(),
+            "frequency_table": lib.frequency_table(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/adaptive/yin-dragon', methods=['POST'])
+def v314_adaptive_yin_dragon():
+    """V314 Adaptive Yin-Dragon Product
+    ---
+    tags:
+      - AdaptiveLibrary
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        a = np.array(data.get("a", [1, 0, 0, 0, 0, 0, 0, 0]), dtype=float)
+        b = np.array(data.get("b", [1, 0, 0, 0, 0, 0, 0, 0]), dtype=float)
+        # Pad to octonion dimension (8) if shorter
+        if len(a) < 8:
+            a = np.pad(a, (0, 8 - len(a)), mode='constant')
+        if len(b) < 8:
+            b = np.pad(b, (0, 8 - len(b)), mode='constant')
+        from adaptive_library import YinDragonProduct
+        ydp = YinDragonProduct()
+        scalar, vector = ydp.compute(a, b)
+        return jsonify({
+            "scalar": scalar,
+            "vector": vector.tolist(),
+            "phase_mismatch_cost": ydp.phase_mismatch_cost(a, b),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/adaptive/rice-bound', methods=['GET'])
+def v314_adaptive_rice():
+    """V314 Adaptive Rice Theorem Bound
+    ---
+    tags:
+      - AdaptiveLibrary
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        from adaptive_library import RiceTheoremBound
+        return jsonify({
+            "llm_ceiling": RiceTheoremBound.llm_ceiling(),
+            "tomas_ceiling": RiceTheoremBound.tomas_ceiling(),
+            "proof_sketch": RiceTheoremBound.proof_sketch(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- 4. CHL Isomorphism (5 endpoints) ---
+
+@app.route('/api/v3/chl/proposition', methods=['POST'])
+def v314_chl_proposition():
+    """V314 CHL Proposition
+    ---
+    tags:
+      - CHLIsomorphism
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        name = data.get("name", "arc_task")
+        inputs = data.get("inputs", [])
+        outputs = data.get("outputs", [])
+        from chl_isomorphism import Proposition
+        prop = Proposition(name, inputs=inputs, outputs=outputs)
+        return jsonify({
+            "name": prop.name,
+            "arity": prop.arity(),
+            "gat": prop.to_gat(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/chl/proof-normalize', methods=['POST'])
+def v314_chl_normalize():
+    """V314 CHL Proof Normalize
+    ---
+    tags:
+      - CHLIsomorphism
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        from chl_isomorphism import ProofTerm
+
+        def _build_proof(p: dict) -> ProofTerm:
+            """递归构建 ProofTerm"""
+            op = p.get("op", "noop")
+            args = p.get("args", [])
+            children_raw = p.get("children", [])
+            children = [_build_proof(c) for c in children_raw]
+            return ProofTerm(op, args, children)
+
+        proof = _build_proof(data)
+        normalized = proof.normalize()
+        return jsonify({
+            "original_sexp": proof.to_sexp(),
+            "original_size": proof.size(),
+            "normalized_sexp": normalized.to_sexp(),
+            "normalized_size": normalized.size(),
+            "type_check": proof.type_check(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/chl/chl-triangle', methods=['POST'])
+def v314_chl_triangle():
+    """V314 CHL Triangle Correspondence
+    ---
+    tags:
+      - CHLIsomorphism
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        name = data.get("name", "arc_task")
+        inputs = data.get("inputs", ["x"])
+        outputs = data.get("outputs", ["y"])
+        from chl_isomorphism import Proposition, CHLCorrespondence
+        prop = Proposition(name, inputs=inputs, outputs=outputs)
+        chl = CHLCorrespondence()
+        result = chl.full_correspondence(prop)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/chl/proof-search', methods=['POST'])
+def v314_chl_search():
+    """V314 CHL Proof Search
+    ---
+    tags:
+      - CHLIsomorphism
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        dsl_primitives = data.get("dsl_primitives", ["rotate", "flip", "scale", "solve"])
+        prop_name = data.get("prop_name", "search_task")
+        inputs = data.get("inputs", ["a"])
+        outputs = data.get("outputs", ["b"])
+        max_depth = int(data.get("max_depth", 3))
+        from chl_isomorphism import Proposition, KSnapProofSearch
+        prop = Proposition(prop_name, inputs=inputs, outputs=outputs)
+        search = KSnapProofSearch(dsl_primitives)
+        found = search.search(prop, max_depth=max_depth)
+        return jsonify({
+            "found": found is not None,
+            "proof_sexp": found.to_sexp() if found else None,
+            "mdl_score": search.mdl_score(found) if found else None,
+            "is_complete": search.is_complete(),
+            "search_history_size": search.search_history_size(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/chl/axiom-expand', methods=['POST'])
+def v314_chl_axiom():
+    """V314 CHL Axiom Expand
+    ---
+    tags:
+      - CHLIsomorphism
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        terms_raw = data.get("proven_terms", [])
+        from chl_isomorphism import ProofTerm, SleepStepAxiomExpander
+
+        def _build_proof(p: dict) -> ProofTerm:
+            """递归构建 ProofTerm"""
+            op = p.get("op", "compose")
+            args = p.get("args", [])
+            children_raw = p.get("children", [])
+            children = [_build_proof(c) for c in children_raw]
+            return ProofTerm(op, args, children)
+
+        terms = [_build_proof(t) for t in terms_raw]
+        expander = SleepStepAxiomExpander()
+        new_axioms = expander.expand(terms)
+        return jsonify({
+            "new_axioms": new_axioms,
+            "axiom_count": expander.axiom_count(),
+            "new_tactics": expander.new_tactics(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- 5. Taiyi Mutual-Duel (5 endpoints) ---
+
+@app.route('/api/v3/taiyi-duel/detect-player', methods=['POST'])
+def v314_taiyi_detect():
+    """V314 Taiyi Duel Detect Player
+    ---
+    tags:
+      - TaiyiMutualDuel
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        prev_obs = np.atleast_2d(np.array(data.get("prev_obs", [[0]]), dtype=int))
+        curr_obs = np.atleast_2d(np.array(data.get("curr_obs", [[0]]), dtype=int))
+        wall_threshold = int(data.get("wall_threshold", 800))
+        from taiyi_mutual_duel import L3DifferentialPerception
+        l3 = L3DifferentialPerception()
+        pos = l3.detect_player(prev_obs, curr_obs, wall_threshold=wall_threshold)
+        return jsonify({
+            "player_position": list(pos) if pos else None,
+            "detected": pos is not None,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/taiyi-duel/plan-path', methods=['POST'])
+def v314_taiyi_plan():
+    """V314 Taiyi Duel Plan Path
+    ---
+    tags:
+      - TaiyiMutualDuel
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        start = tuple(data.get("start", [0, 0]))
+        goal = tuple(data.get("goal", [0, 0]))
+        grid = np.array(data.get("grid", [[0, 0], [0, 0]]), dtype=int)
+        max_depth = int(data.get("max_depth", 100))
+        from taiyi_mutual_duel import L2DFSBacktracker
+        l2 = L2DFSBacktracker(max_depth=max_depth)
+        plan = l2.propose_plan(start, goal, grid)
+        return jsonify({
+            "plan": plan,
+            "plan_length": len(plan),
+            "duel_history": l2.mutual_duel_history(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/taiyi-duel/bayesian-fuse', methods=['POST'])
+def v314_taiyi_fuse():
+    """V314 Taiyi Duel Bayesian Fuse
+    ---
+    tags:
+      - TaiyiMutualDuel
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        plan_len = int(data.get("plan_len", 3))
+        baseline = int(data.get("baseline", 10))
+        steps_used = int(data.get("steps_used", 0))
+        w_logic = float(data.get("w_logic", 0.6))
+        w_stat = float(data.get("w_stat", 0.4))
+        from taiyi_mutual_duel import L4BayesianFusion
+        l4 = L4BayesianFusion(w_logic=w_logic, w_stat=w_stat)
+        result = l4.fuse(plan_len, baseline, steps_used)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/taiyi-duel/verify-strategy', methods=['POST'])
+def v314_taiyi_verify():
+    """V314 Taiyi Duel Verify Strategy
+    ---
+    tags:
+      - TaiyiMutualDuel
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        strategy = data.get("strategy", ["UP"])
+        # Accept strategy as list of action strings, or extract from dict
+        if isinstance(strategy, dict):
+            strategy = strategy.get("actions", strategy.get("steps", ["UP"]))
+        if not isinstance(strategy, list):
+            strategy = [str(strategy)]
+        env_data = data.get("environment", [[0, 0, 2], [0, 1, 0], [0, 0, 0]])
+        # Accept environment as 2D array or as dict with 'grid' key
+        if isinstance(env_data, dict):
+            env_data = env_data.get("grid", env_data.get("data", [[0, 0, 2], [0, 1, 0], [0, 0, 0]]))
+        environment = np.atleast_2d(np.array(env_data, dtype=int))
+        from taiyi_mutual_duel import GameSemanticsEngine
+        game = GameSemanticsEngine()
+        won = game.verify(strategy, environment)
+        return jsonify({
+            "strategy": strategy,
+            "won": won,
+            "dialogue": game.dialogue_history(),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v3/taiyi-duel/solve', methods=['POST'])
+def v314_taiyi_solve():
+    """V314 Taiyi Duel Solve
+    ---
+    tags:
+      - TaiyiMutualDuel
+    responses:
+      200:
+    description: Success
+    """
+    try:
+        data = request.get_json(force=True)
+        obs_seq_raw = data.get("observation_sequence", [])
+        goal = tuple(data.get("goal", [0, 0]))
+        obs_seq = [np.array(o, dtype=int) for o in obs_seq_raw]
+        from taiyi_mutual_duel import TaiyiMutualDuelAgent
+        agent = TaiyiMutualDuelAgent()
+        result = agent.solve(obs_seq, goal=goal)
+        return jsonify({
+            "path": result["path"],
+            "rhae_score": result["rhae_score"],
+            "steps": result["steps"],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===== End V3.14 REST Endpoints =====
 
 
 # ============================================================
